@@ -1,6 +1,7 @@
 import PTProfile from "../models/PTProfile.js";
 import User from "../models/User.js";
 import Package from "../models/Package.js";
+import { slugify } from "../utils/formatters.js";
 
 /* ----------------------------------------------------
    🔹 Search PTs by specialty, slot availability, duration, mode, and location
@@ -28,14 +29,6 @@ export const getPTsByAvailableSlot = async (req, res) => {
     pipeline.push({
       $match: { verified: true, availableForNewClients: true },
     });
-
-    // ✅ 2. Require at least one of area or coords
-    if (!area && !coords) {
-      return res.status(400).json({
-        success: false,
-        message: "Either area or coordinates is required to search PTs.",
-      });
-    }
 
     /* ----------------------------------------------------
        ✅ 3. LOCATION FILTER — prioritize GPS over city text
@@ -216,6 +209,12 @@ export const getPTsByAvailableSlot = async (req, res) => {
         userInfo: { $arrayElemAt: ["$userInfo", 0] },
       },
     });
+    pipeline.push({
+      $project: {
+        "userInfo.password": 0,
+        "userInfo.refreshToken": 0,
+      },
+    });
 
     /* ----------------------------------------------------
        ✅ 12. Filter by PT name (AFTER lookup)
@@ -260,13 +259,18 @@ export const getPTsByAvailableSlot = async (req, res) => {
     ---------------------------------------------------- */
     const result = await PTProfile.aggregate(pipeline);
 
+    const itemsWithSlug = result.map(item => ({
+      ...item,
+      slug: item.slug || slugify(item.userInfo?.name)
+    }));
+
     res.status(200).json({
       success: true,
       message: "Search PTs successful",
       page: Number(page),
       limit: Number(limit),
-      total: result.length,
-      items: result,
+      total: itemsWithSlug.length,
+      items: itemsWithSlug,
     });
   } catch (error) {
     console.error("Error searching PTs:", error);
@@ -275,11 +279,32 @@ export const getPTsByAvailableSlot = async (req, res) => {
 };
 
 /* ----------------------------------------------------
-   🔹 PT Detail (includes all active packages)
+   🔹 PT Detail (includes all active packages) - support id or slug
 ---------------------------------------------------- */
 export const getPTById = async (req, res) => {
   try {
-    const ptProfile = await PTProfile.findById(req.params.id).lean();
+    const { id } = req.params;
+    let ptProfile = null;
+
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      ptProfile = await PTProfile.findById(id).lean();
+      if (!ptProfile) {
+        ptProfile = await PTProfile.findOne({ user: id }).lean();
+      }
+    }
+
+    if (!ptProfile) {
+      ptProfile = await PTProfile.findOne({ slug: id }).lean();
+    }
+
+    if (!ptProfile) {
+      const allProfiles = await PTProfile.find({}).populate("user", "name").lean();
+      ptProfile = allProfiles.find(p => {
+        if (!p.user) return false;
+        return (p.slug || slugify(p.user.name)) === id.toLowerCase();
+      });
+    }
+
     if (!ptProfile)
       return res.status(404).json({ success: false, message: "PT not found" });
 
@@ -297,7 +322,12 @@ export const getPTById = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "PT detail retrieved successfully",
-      data: { ...ptProfile, user, packages },
+      data: { 
+        ...ptProfile, 
+        slug: ptProfile.slug || slugify(user?.name),
+        user, 
+        packages 
+      },
     });
   } catch (error) {
     console.error("Error fetching PT detail:", error);

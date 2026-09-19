@@ -1,8 +1,12 @@
 // src/controllers/packageController.js
+import mongoose from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
 import Package from '~/models/Package'
+import PTProfile from '~/models/PTProfile'
 import StudentPackage from '~/models/StudentPackage'
 import PTMaterial from '~/models/PTMaterial.js'
+import { slugify } from '~/utils/formatters'
+import { cacheService } from '~/services/cacheService'
 
 
 // Mon-first ordering: 1..6..0(CN)
@@ -80,6 +84,9 @@ const createPackage = async (req, res) => {
 
     const pkg = await Package.create(payload);
 
+    cacheService.delByPattern('api:*package*');
+    cacheService.delByPattern('api:*pt*');
+
     return res.status(StatusCodes.CREATED).json({
       success: true,
       message: 'Tạo gói tập thành công',
@@ -129,11 +136,42 @@ const getMyPackages = async (req, res) => {
   }
 };
 
-// Public: Student xem danh sách gói của 1 PT
+// Public: Student xem danh sách gói của 1 PT (hỗ trợ cả ObjectId lẫn slug)
 const getPackagesByPTPublic = async (req, res) => {
   try {
     const { ptId } = req.params;
-    const items = await Package.find({ pt: ptId, isActive: true }).sort({ createdAt: -1 });
+    let targetUserId = null;
+
+    if (mongoose.isValidObjectId(ptId)) {
+      targetUserId = ptId;
+      const profile = await PTProfile.findById(ptId).select('user').lean();
+      if (profile && profile.user) {
+        targetUserId = profile.user;
+      }
+    } else {
+      // ptId là slug (ví dụ: 'tran-mai-anh')
+      let profile = await PTProfile.findOne({ slug: ptId }).select('user').lean();
+      if (!profile) {
+        const allProfiles = await PTProfile.find({})
+          .populate('user', 'name')
+          .select('user slug')
+          .lean();
+        profile = allProfiles.find(p => {
+          if (!p.user) return false;
+          const s = p.slug || slugify(p.user.name);
+          return s.toLowerCase() === String(ptId).toLowerCase();
+        });
+      }
+      if (profile && profile.user) {
+        targetUserId = profile.user._id || profile.user;
+      }
+    }
+
+    if (!targetUserId) {
+      return res.status(StatusCodes.OK).json({ success: true, data: [] });
+    }
+
+    const items = await Package.find({ pt: targetUserId, isActive: true }).sort({ createdAt: -1 });
     return res.status(StatusCodes.OK).json({ success: true, data: items });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -226,6 +264,9 @@ const updatePackage = async (req, res) => {
 
     await pkg.save();
 
+    cacheService.delByPattern('api:*package*');
+    cacheService.delByPattern('api:*pt*');
+
     return res.status(StatusCodes.OK).json({
       success: true,
       message: 'Cập nhật gói thành công',
@@ -264,6 +305,10 @@ const deletePackage = async (req, res) => {
 
     pkg.isActive = false;
     await pkg.save();
+
+    cacheService.delByPattern('api:*package*');
+    cacheService.delByPattern('api:*pt*');
+
     return res.status(StatusCodes.OK).json({ success: true, message: 'Đã ẩn gói tập thành công' });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -291,6 +336,10 @@ const hardDeletePackage = async (req, res) => {
     }
 
     await pkg.deleteOne();
+
+    cacheService.delByPattern('api:*package*');
+    cacheService.delByPattern('api:*pt*');
+
     return res.status(StatusCodes.OK).json({ success: true, message: 'Đã xoá gói tập vĩnh viễn' });
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({

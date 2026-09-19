@@ -1,8 +1,10 @@
-// src/controllers/ptProfileController.js
+import mongoose from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
 import PTProfile from '~/models/PTProfile'
 import User from '~/models/User'
 import cloudinary from '~/config/cloudinary'
+import { slugify } from '~/utils/formatters'
+import { cacheService } from '~/services/cacheService'
 
 // helpers/ptProfileSanitizer.js
 export function sanitizePTProfile(body = {}) {
@@ -199,6 +201,10 @@ export const upsertMyProfile = async (req, res) => {
       }
     ).lean()
 
+    // Xóa cache để học viên thấy ngay cập nhật mới
+    cacheService.delByPattern('api:*pt*');
+    cacheService.delByPattern('api:*search*');
+
     return res
       .status(StatusCodes.OK)
       .json({ success: true, message: 'PT profile saved', data: doc })
@@ -241,6 +247,10 @@ const deleteMyProfile = async (req, res) => {
         .status(StatusCodes.NOT_FOUND)
         .json({ success: false, message: 'Không tìm thấy hồ sơ để xoá' })
     }
+
+    cacheService.delByPattern('api:*pt*');
+    cacheService.delByPattern('api:*search*');
+
     return res
       .status(StatusCodes.OK)
       .json({ success: true, message: 'Đã xoá hồ sơ PT' })
@@ -267,6 +277,9 @@ const uploadCoverImage = async (req, res) => {
           { $set: { coverImage: result.secure_url } },
           { upsert: true }
         )
+
+        cacheService.delByPattern('api:*pt*');
+        cacheService.delByPattern('api:*search*');
 
         res.json({ success: true, url: result.secure_url })
       }
@@ -303,14 +316,19 @@ const getAllPTProfilesPublic = async (req, res) => {
       .lean()
 
     // chỉ giữ user có role là 'pt' và có keyword (nếu có)
-    const list = profiles.filter(
-      (p) =>
-        p.user &&
-        p.user.role === 'pt' &&
-        (!keyword ||
-          p.user.name.toLowerCase().includes(keyword.toLowerCase()) ||
-          (p.bio && p.bio.toLowerCase().includes(keyword.toLowerCase())))
-    )
+    const list = profiles
+      .filter(
+        (p) =>
+          p.user &&
+          p.user.role === 'pt' &&
+          (!keyword ||
+            p.user.name.toLowerCase().includes(keyword.toLowerCase()) ||
+            (p.bio && p.bio.toLowerCase().includes(keyword.toLowerCase())))
+      )
+      .map(p => ({
+        ...p,
+        slug: p.slug || slugify(p.user?.name)
+      }))
 
     return res.status(StatusCodes.OK).json({
       success: true,
@@ -330,20 +348,59 @@ const getAllPTProfilesPublic = async (req, res) => {
 /* =========================================================
    🆕 2️⃣ LẤY CHI TIẾT PT CỤ THỂ (PUBLIC)
    GET /api/pt/public/:id
+   Hỗ trợ cả MongoDB ObjectId lẫn URL slug (ví dụ: 'tran-mai-anh')
 ========================================================= */
 const getPTDetailPublic = async (req, res) => {
   try {
     const { id } = req.params
 
-    const profile = await PTProfile.findOne({ user: id })
-      .populate('user', 'name email avatar phone role')
-      .select('-__v -updatedAt -createdAt')
-      .lean()
+    let profile = null
 
-    if (!profile || profile.user.role !== 'pt') {
+    if (mongoose.isValidObjectId(id)) {
+      profile = await PTProfile.findOne({ user: id })
+        .populate('user', 'name email avatar phone role')
+        .select('-__v -updatedAt -createdAt')
+        .lean()
+
+      if (!profile) {
+        profile = await PTProfile.findById(id)
+          .populate('user', 'name email avatar phone role')
+          .select('-__v -updatedAt -createdAt')
+          .lean()
+      }
+    }
+
+    // Nếu không tìm thấy bằng ObjectId hoặc id là slug (ví dụ: 'tran-mai-anh')
+    if (!profile) {
+      profile = await PTProfile.findOne({ slug: id })
+        .populate('user', 'name email avatar phone role')
+        .select('-__v -updatedAt -createdAt')
+        .lean()
+    }
+
+    if (!profile) {
+      // Tìm PT có slug tương ứng với tên
+      const allProfiles = await PTProfile.find({})
+        .populate('user', 'name email avatar phone role')
+        .select('-__v -updatedAt -createdAt')
+        .lean()
+
+      profile = allProfiles.find(p => {
+        if (!p.user) return false
+        const s = p.slug || slugify(p.user.name)
+        return s.toLowerCase() === String(id).toLowerCase()
+      })
+    }
+
+    if (!profile || profile.user?.role !== 'pt') {
       return res
         .status(StatusCodes.NOT_FOUND)
         .json({ success: false, message: 'Không tìm thấy PT' })
+    }
+
+    // Đảm bảo slug luôn có trong kết quả
+    if (!profile.slug && profile.user?.name) {
+      profile.slug = slugify(profile.user.name)
     }
 
     return res.status(StatusCodes.OK).json({

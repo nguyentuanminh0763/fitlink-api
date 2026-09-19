@@ -1,7 +1,7 @@
-// src/routes/ptPackageRoutes.js
 import express from 'express'
 import { authMiddleware } from '~/middlewares/authMiddleware'
 import { packageController } from '~/controllers/packageController'
+import { cacheResponse } from '~/middlewares/cacheMiddleware'
 
 const router = express.Router()
 
@@ -54,7 +54,7 @@ router.delete(
 )
 
 // ====== PUBLIC ROUTES CHO STUDENT ====== //
-// Student xem danh sách gói public của 1 PT
-router.get('/:ptId/packages', packageController.getPackagesByPTPublic)
+// Student xem danh sách gói public của 1 PT (Cache 10 phút)
+router.get('/:ptId/packages', cacheResponse(600), packageController.getPackagesByPTPublic)
 
 export default router
