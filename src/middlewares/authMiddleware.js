@@ -28,18 +28,14 @@ import { env } from '~/config/environment'
 const authenTokenCookie = (req, res, next) => {
   const token = req.cookies.token
 
-  console.log('token:', token);
-
   if (!token) {
     return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'No token provided' })
   }
 
   jwt.verify(token, env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(StatusCodes.FORBIDDEN).json({ message: 'Invalid or expired token' })
+      return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Invalid or expired token' })
     }
-
-    console.log('decode:', decoded)
 
     req.user = decoded
     next()
