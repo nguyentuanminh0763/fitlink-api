@@ -35,7 +35,7 @@ import payoutRoutes from "./routes/payoutRoutes.js";
 // student
 import cookieParser from "cookie-parser";
 import cors from "cors";
-const morgan = require("morgan");
+import morgan from "morgan";
 import http from "http";
 
 // notification
