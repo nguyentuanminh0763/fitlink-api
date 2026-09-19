@@ -1,55 +1,21 @@
-import Redis from 'ioredis';
+import { redisClient, checkRedisReady } from '../config/redis';
 import { env } from '../config/environment';
 
 class CacheService {
   constructor() {
-    this.redisClient = null;
-    this.isRedisReady = false;
     this.memoryStore = new Map(); // Fallback in-memory cache: key -> { value, expiresAt }
     this.init();
   }
 
+  get redisClient() {
+    return redisClient;
+  }
+
+  get isRedisReady() {
+    return checkRedisReady();
+  }
+
   init() {
-    if (env.REDIS_URI) {
-      try {
-        this.redisClient = new Redis(env.REDIS_URI, {
-          lazyConnect: true,
-          maxRetriesPerRequest: 1,
-          connectTimeout: 3000,
-          retryStrategy: (times) => {
-            if (times > 3) {
-              console.warn('⚠️ [CACHE] Redis connection failed multiple times. Using In-Memory fallback.');
-              return null; // Stop retrying
-            }
-            return Math.min(times * 500, 2000);
-          },
-        });
-
-        this.redisClient.connect()
-          .then(() => {
-            this.isRedisReady = true;
-            console.log('⚡ [CACHE] Connected to Redis Cache Server successfully.');
-          })
-          .catch((err) => {
-            this.isRedisReady = false;
-            console.warn(`ℹ️ [CACHE] Redis not reachable (${err.message}). Defaulting to Server In-Memory Cache.`);
-          });
-
-        this.redisClient.on('error', (err) => {
-          this.isRedisReady = false;
-        });
-
-        this.redisClient.on('close', () => {
-          this.isRedisReady = false;
-        });
-      } catch (err) {
-        this.isRedisReady = false;
-        console.warn(`ℹ️ [CACHE] Could not initialize Redis client. Using Server In-Memory Cache.`);
-      }
-    } else {
-      console.log('ℹ️ [CACHE] REDIS_URI not configured. Operating with high-speed Server In-Memory RAM Cache.');
-    }
-
     // Periodic cleanup of expired memory entries every 60 seconds
     setInterval(() => {
       this.cleanupExpiredMemory();
