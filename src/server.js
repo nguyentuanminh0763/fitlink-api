@@ -63,6 +63,15 @@ const START_SERVER = () => {
     next();
   });
 
+  // Healthcheck endpoint for Docker & K8s probes
+  app.get("/health", (req, res) => {
+    res.status(200).json({
+      status: "healthy",
+      service: "fitlink-backend-api",
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // user router
   app.use("/api/search", searchRoutes);
   app.use("/api/auth", authRoutes);
