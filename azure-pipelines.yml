@@ -12,7 +12,7 @@ pr:
       - dev
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: 'Default'
 
 steps:
 - task: NodeTool@0
