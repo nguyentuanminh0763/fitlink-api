@@ -21,8 +21,8 @@ steps:
   displayName: '1. Setup Node.js 20'
 
 - script: |
-    npm ci
-  displayName: '2. Install Dependencies (npm ci)'
+    npm install
+  displayName: '2. Install Dependencies (npm install)'
 
 - script: |
     npx vitest run src/__tests__/pricing.test.js
