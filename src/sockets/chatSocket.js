@@ -1,8 +1,18 @@
-// src/sockets/chatSocket.js
 import { Server } from 'socket.io'
+import jwt from 'jsonwebtoken'
+import { env } from '~/config/environment.js'
 import Chat from '../models/Chat.js'
 import Message from '../models/Message.js'
 import { createNotification } from '../services/notificationService.js'
+
+// Helper tách cookie string từ header handshake
+const parseCookies = (cookieHeader = '') => {
+  return cookieHeader.split(';').reduce((cookies, item) => {
+    const [name, value] = item.trim().split('=')
+    if (name && value) cookies[name] = decodeURIComponent(value)
+    return cookies
+  }, {})
+}
 
 export const initChatSocket = (server) => {
   const io = new Server(server, {
@@ -18,28 +28,62 @@ export const initChatSocket = (server) => {
     }
   })
 
+  // ✅ Middleware xác thực danh tính qua JWT HttpOnly cookie (P0-1 Fix)
+  io.use((socket, next) => {
+    try {
+      const cookieHeader = socket.handshake.headers.cookie || ''
+      const cookies = parseCookies(cookieHeader)
+      const token = cookies.token || socket.handshake.auth?.token
+
+      if (!token) {
+        return next(new Error('Authentication error: No token provided'))
+      }
+
+      jwt.verify(token, env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return next(new Error('Authentication error: Invalid or expired token'))
+        }
+        // Gắn thông tin người dùng đã xác thực vào socket.data
+        socket.data.user = decoded
+        socket.data.userId = String(decoded._id)
+        next()
+      })
+    } catch (error) {
+      return next(new Error('Authentication error'))
+    }
+  })
+
   io.on('connection', (socket) => {
     console.log('⚡ Client connected:', socket.id)
 
-    // Nếu client có truyền userId qua query thì join luôn
-    const userId = socket.handshake?.query?.userId
-    if (userId) {
-      socket.join(String(userId))
-      console.log(`👤 ${socket.id} joined user room ${userId} (query)`)
+    const authenticatedUserId = socket.data.userId
+
+    // Tự động join room cá nhân của chính user đã xác thực
+    if (authenticatedUserId) {
+      socket.join(authenticatedUserId)
+      console.log(`👤 ${socket.id} joined user room ${authenticatedUserId} (authenticated)`)
     }
 
-    // Fallback: client sẽ emit 'registerUser' ngay sau khi connect
+    // Fallback registerUser: chỉ cho phép join room nếu đúng là ID của chính mình
     socket.on('registerUser', (uid) => {
       if (!uid) return
-      socket.join(String(uid))
-      console.log(`👤 ${socket.id} joined user room ${uid} (registerUser)`)
+      if (String(uid) === authenticatedUserId) {
+        socket.join(authenticatedUserId)
+      } else {
+        console.warn(`⚠️ Blocked impersonation attempt by ${authenticatedUserId} trying to register ${uid}`)
+      }
     })
 
-    // Tham gia / rời room hội thoại
+    // Tham gia / rời room hội thoại (chỉ cho phép nếu user thuộc room id1-id2)
     socket.on('joinRoom', (roomId) => {
       if (!roomId) return
-      socket.join(roomId)
-      console.log(`✅ ${socket.id} joined room ${roomId}`)
+      const participants = roomId.split('-')
+      if (participants.includes(authenticatedUserId)) {
+        socket.join(roomId)
+        console.log(`✅ ${socket.id} (${authenticatedUserId}) joined room ${roomId}`)
+      } else {
+        console.warn(`⚠️ Blocked unauthorized joinRoom attempt: ${authenticatedUserId} tried to join ${roomId}`)
+      }
     })
 
     socket.on('leaveRoom', (roomId) => {
@@ -51,13 +95,19 @@ export const initChatSocket = (server) => {
     // Gửi tin nhắn + tạo/emit notification
     socket.on('sendMessage', async (message) => {
       try {
-        const { room, sender, text, attachments = [] } = message
-        if (!room || !sender || !text) {
+        const { room, text, attachments = [] } = message
+        // Bắt buộc sender là user đã xác thực qua JWT, không tin sender client gửi
+        const sender = authenticatedUserId
+        if (!room || !text) {
           console.warn('⚠️ Missing message data:', message)
           return
         }
 
         const [id1, id2] = room.split('-')
+        if (![id1, id2].includes(authenticatedUserId)) {
+          console.warn(`⚠️ Blocked unauthorized sendMessage to room ${room} from user ${authenticatedUserId}`)
+          return
+        }
         let chatDoc = await Chat.findOne({ participants: { $all: [id1, id2] } })
         if (!chatDoc) chatDoc = await Chat.create({ participants: [id1, id2] })
 
