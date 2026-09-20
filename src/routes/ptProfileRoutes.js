@@ -1,6 +1,7 @@
 import express from 'express'
 import { authMiddleware } from '~/middlewares/authMiddleware'
 import { ptProfileController } from '~/controllers/ptProfileController'
+import { cacheResponse } from '~/middlewares/cacheMiddleware'
 import multer from 'multer'
 import {
   ptSubmitReview,
@@ -51,9 +52,9 @@ router.get('/profile/requests', authMiddleware.authenTokenCookie, authMiddleware
 router.get('/profile/requests/latest', authMiddleware.authenTokenCookie, authMiddleware.isPT, ptGetMyLatestRequest)
 router.post('/profile/cancel-pending', authMiddleware.authenTokenCookie, authMiddleware.isPT, ptCancelMyPending)
 
-router.get('/public/list', ptProfileController.getAllPTProfilesPublic)
-router.get('/public/:id', ptProfileController.getPTDetailPublic)
+router.get('/public/list', cacheResponse(300), ptProfileController.getAllPTProfilesPublic)
+router.get('/public/:id', cacheResponse(600), ptProfileController.getPTDetailPublic)
 // Public: xem hồ sơ 1 PT
-router.get('/:ptId/profile', ptProfileController.getPTProfilePublic)
+router.get('/:ptId/profile', cacheResponse(600), ptProfileController.getPTProfilePublic)
 
 export default router

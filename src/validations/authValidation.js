@@ -56,27 +56,30 @@ const registerByPhone = async (req, res, next) => {
 }
 
 const login = async (req, res, next) => {
-  console.log('req.body:', req.body)
   const correctCondition = Joi.object({
     phone: Joi.string()
       .trim()
-      .strict()
-      .pattern(/^0[0-9]{9}$/)
+      .custom((value, helpers) => {
+        const isPhone = /^0[0-9]{9}$/.test(value);
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        if (!isPhone && !isEmail) {
+          return helpers.message('Vui lòng nhập số điện thoại hợp lệ (10 số) hoặc email');
+        }
+        return value;
+      })
       .required()
       .messages({
-        'string.pattern.base': 'Số điện thoại không đúng định dạng',
-        'any.required': 'Số điện thoại là bắt buộc'
+        'any.required': 'Số điện thoại hoặc email là bắt buộc'
       }),
     password: Joi.string()
       .trim()
-      .strict()
       .min(6)
       .required()
       .messages({
         'string.min': 'Mật khẩu phải ít nhất 6 ký tự',
         'any.required': 'Mật khẩu là bắt buộc'
       })
-  })
+  }).unknown(true)
   try {
     await correctCondition.validateAsync(req.body, { abortEarly: false })
     console.log('VALIDATION')

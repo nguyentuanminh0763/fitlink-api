@@ -3,7 +3,7 @@ import { env } from "~/config/environment";
 import { errorHandlingMiddleware } from "~/middlewares/errorHandlingMiddleware";
 import { connectDB } from "~/config/database";
 import searchRoutes from "./routes/searchRoutes.js";
-
+import studentMaterialRoutes from "./routes/studentMaterialRoutes.js";
 // router
 import authRoutes from "~/routes/authRoutes";
 import studentRoutes from "./routes/studentRoutes.js";
@@ -35,7 +35,7 @@ import payoutRoutes from "./routes/payoutRoutes.js";
 // student
 import cookieParser from "cookie-parser";
 import cors from "cors";
-const morgan = require("morgan");
+import morgan from "morgan";
 import http from "http";
 
 // notification
@@ -50,9 +50,22 @@ const START_SERVER = () => {
   app.set("trust proxy", 1); // nếu deploy lên Heroku hoặc Vercel thì mở dòng này
   app.use(express.json());
   app.use(morgan("dev"));
+  const allowedOrigins = [
+    env.CLIENT_URL,
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+  ].filter(Boolean);
+
   app.use(
     cors({
-      origin: env.CLIENT_URL,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+      },
       credentials: true,
     })
   );
@@ -61,6 +74,15 @@ const START_SERVER = () => {
   app.use((req, res, next) => {
     if (req.path.startsWith("/socket.io")) return;
     next();
+  });
+
+  // Healthcheck endpoint for Docker & K8s probes
+  app.get("/health", (req, res) => {
+    res.status(200).json({
+      status: "healthy",
+      service: "fitlink-backend-api",
+      timestamp: new Date().toISOString()
+    });
   });
 
   // user router
@@ -85,6 +107,7 @@ const START_SERVER = () => {
   app.use("/api/admin/transactions", transactionRoutes);
   app.use("/api/pt", ptMaterialRoutes);
   app.use("/api/pt", ptProfileRoutes);
+  app.use("/api/student", studentMaterialRoutes);
 
   // cho FE truy cập file đã upload
   app.use("/uploads", express.static("uploads"));

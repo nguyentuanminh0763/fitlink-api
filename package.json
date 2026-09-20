@@ -9,11 +9,12 @@
   },
   "scripts": {
     "lint": "eslint src --ext js --report-unused-disable-directives --max-warnings 0",
-    "clean": "rm -rf build && mkdir build",
+    "clean": "node -e \"fs.rmSync('build', { recursive: true, force: true }); fs.mkdirSync('build', { recursive: true });\"",
     "build-babel": "babel ./src -d ./build/src",
     "build": "npm run clean && npm run build-babel",
     "production": "npm run build && node ./build/src/server.js",
-    "dev": "nodemon --exec babel-node ./src/server.js"
+    "dev": "nodemon --exec babel-node ./src/server.js",
+    "seed": "babel-node ./src/seeds/seedData.js"
   },
   "dependencies": {
     "@babel/runtime": "^7.22.10",
@@ -29,6 +30,7 @@
     "express": "^4.21.2",
     "google-auth-library": "^10.3.0",
     "http-status-codes": "^2.3.0",
+    "ioredis": "^6.0.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "5.5",
@@ -50,5 +52,4 @@
     "eslint": "^8.47.0",
     "nodemon": "^3.0.1"
   }
-  
 }

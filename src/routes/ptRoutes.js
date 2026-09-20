@@ -15,4 +15,11 @@ router.get(
     authMiddleware.isPT,
     ptController.getMyPackages
 );
+
+router.get(
+  '/me/dashboard',
+  authMiddleware.authenTokenCookie,
+  authMiddleware.isPT,
+  ptController.getDashboardStats
+);
 export default router

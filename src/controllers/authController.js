@@ -233,24 +233,24 @@ export const registerByPhoneConfirm = async (req, res) => {
 
 
 const login = async (req, res) => {
-  const { phone, password } = req.body
+  const { phone, password, email, account } = req.body
+  const identifier = (phone || email || account || '').trim()
+  const isEmail = identifier.includes('@')
+  const query = isEmail ? { email: identifier.toLowerCase() } : { phone: identifier }
 
-  const currentUser = await User.findOne({ phone })
-
+  const currentUser = await User.findOne(query)
 
   if (!currentUser) {
-    return res.status(StatusCodes.NOT_FOUND).json({ message: 'Số điện thoại chua đăng ký' })
+    return res.status(StatusCodes.NOT_FOUND).json({
+      message: isEmail ? 'Email chưa được đăng ký' : 'Số điện thoại chưa được đăng ký'
+    })
   }
   if (!currentUser.isActive) {
     return res.status(StatusCodes.FORBIDDEN).json({ message: 'Tài khoản của bạn đã bị khóa' })
   }
 
   if (!(await bcrypt.compare(password, currentUser.password))) {
-    return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Sai MK' })
-  }
-
-  if (currentUser.isActive === false) {
-    return res.status(StatusCodes.FORBIDDEN).json({ message: 'Tài khoản của bạn đã bị khóa' })
+    return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Mật khẩu không chính xác' })
   }
 
   const payload = {

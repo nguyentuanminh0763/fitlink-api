@@ -5,10 +5,10 @@ const { Schema, model } = mongoose
 // Lưu vết thao tác duyệt / cập nhật
 const reviewLogSchema = new Schema(
   {
-    action: { type: String, enum: ['submit','update','approve','reject','cancel'], required: true },
-    by:     { type: Schema.Types.ObjectId, ref: 'User', required: true }, // PT (submit/update/cancel) hoặc Admin (approve/reject)
-    at:     { type: Date, default: Date.now },
-    note:   { type: String, default: '' } // lý do từ chối / ghi chú duyệt
+    action: { type: String, enum: ['submit', 'update', 'approve', 'reject', 'cancel'], required: true },
+    by: { type: Schema.Types.ObjectId, ref: 'User', required: true }, // PT (submit/update/cancel) hoặc Admin (approve/reject)
+    at: { type: Date, default: Date.now },
+    note: { type: String, default: '' } // lý do từ chối / ghi chú duyệt
   },
   { _id: false }
 )
@@ -30,15 +30,15 @@ const profileSnapshotSchema = new Schema(
       photos: [String]
     },
     deliveryModes: {
-      atPtGym:    { type: Boolean, default: true  },
-      atClient:   { type: Boolean, default: false },
+      atPtGym: { type: Boolean, default: true },
+      atClient: { type: Boolean, default: false },
       atOtherGym: { type: Boolean, default: false }
     },
     travelPolicy: {
-      enabled:     { type: Boolean, default: true },
-      freeRadiusKm:{ type: Number, default: 6  },
+      enabled: { type: Boolean, default: true },
+      freeRadiusKm: { type: Number, default: 6 },
       maxTravelKm: { type: Number, default: 20 },
-      feePerKm:    { type: Number, default: 10000 }
+      feePerKm: { type: Number, default: 10000 }
     },
 
     // marketing/info
@@ -56,20 +56,20 @@ const profileSnapshotSchema = new Schema(
 const ptApprovalRequestSchema = new Schema(
   {
     // Chủ đơn
-    user:      { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     ptProfile: { type: Schema.Types.ObjectId, ref: 'PTProfile', required: true, index: true },
 
     // Trạng thái quy trình
-    status: { 
-      type: String, 
-      enum: ['pending','approved','rejected','cancelled'], 
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected', 'cancelled'],
       default: 'pending',
       index: true
     },
 
     // Lý do từ chối & ghi chú duyệt (khi rejected/approved)
     rejectReason: { type: String, default: '' },
-    adminNote:    { type: String, default: '' },
+    adminNote: { type: String, default: '' },
 
     // Người duyệt & thời điểm (set khi approve/reject)
     reviewedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
@@ -82,7 +82,18 @@ const ptApprovalRequestSchema = new Schema(
     submitCount: { type: Number, default: 1, min: 1 },
 
     // Lịch sử thao tác
-    logs: { type: [reviewLogSchema], default: [] }
+    logs: { type: [reviewLogSchema], default: [] },
+
+    aiReview: {
+      aiStatus: { type: String, enum: ['pass', 'reject'], default: null },
+      score: { type: Number, default: null },
+      issues: { type: [String], default: [] },
+      rejectReason: { type: String, default: '' }, // lý do AI detect
+      suggestedBio: { type: String, default: '' },
+      reviewedAt: { type: Date },  // thời điểm AI chạy
+      version: { type: Number, default: 1 }, // phòng trường hợp sau này update model hoặc rule
+      isReviewed: { type: Boolean, default: false } // PT đã được AI kiểm duyệt hay chưa
+    }
   },
   { timestamps: true }
 )

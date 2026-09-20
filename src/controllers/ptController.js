@@ -1,5 +1,6 @@
 import StudentPackage from '../models/StudentPackage.js';
 import Package from '../models/Package.js';
+import Transaction from '~/models/Transaction.js';
 import User from '../models/User.js';
 import PTProfile from '../models/PTProfile.js';
 import { StatusCodes } from 'http-status-codes';
@@ -154,6 +155,63 @@ export const getAllPTs = async (req, res) => {
     res.status(500).json({ message: "Lỗi server khi lấy danh sách PT" });
   }
 };
+
+export const getDashboardStats = async (req, res) => {
+  try {
+    const ptId = req.user._id
+
+    // 1) Số gói đã bán (StudentPackage của PT, trừ paused nếu muốn)
+    const soldPackageCount = await StudentPackage.countDocuments({
+      pt: ptId,
+      status: { $in: ['active', 'completed', 'expired'] } // bỏ paused
+    })
+
+    // 2) Số học viên unique
+    const studentIds = await StudentPackage.distinct('student', {
+      pt: ptId,
+      status: { $in: ['active', 'completed', 'expired'] }
+    })
+    const studentCount = studentIds.length
+
+    // 3) Số package template đang active
+    const packageTemplateCount = await Package.countDocuments({
+      pt: ptId,
+      isActive: true
+    })
+
+    // 4) Tổng tiền thu được – tạm thời = 0 nếu chưa nối với Transaction
+    // Nếu sau này bạn có Transaction với field `amount` và status `paid`
+    // thì chỉnh phần này:
+    let totalRevenue = 0
+    // ví dụ:
+    const pkgs = await StudentPackage.find({
+      pt: ptId,
+      transaction: { $ne: null }
+    }).select('transaction').lean()
+    const transactionIds = pkgs.map(p => p.transaction)
+    const agg = await Transaction.aggregate([
+      { $match: { _id: { $in: transactionIds }, status: 'paid' } },
+      { $group: { _id: null, totalRevenue: { $sum: '$ptEarning' } } }
+    ])
+    totalRevenue = agg[0]?.totalRevenue || 0
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      data: {
+        studentCount,
+        soldPackageCount,
+        packageTemplateCount,
+        totalRevenue
+      }
+    })
+  } catch (err) {
+    console.error('getDashboardStats error:', err)
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: 'Server error' })
+  }
+}
+
 export const ptController = {
   isPTVerified,
   getMyStudents,
@@ -161,4 +219,5 @@ export const ptController = {
   createStudentPackage,
   updateStudentPackage,
   getAllPTs,
+  getDashboardStats
 };

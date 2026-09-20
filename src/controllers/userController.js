@@ -2,23 +2,76 @@ import { StatusCodes } from 'http-status-codes'
 import User from '~/models/User'
 import bcrypt from 'bcrypt'
 import cloudinary from '~/config/cloudinary'
+import { genarateAccessToken } from '~/utils/genarateTokens'
+import { env } from '~/config/environment'
 
-const getProfile = (req, res) => {
-  const user = req.user
-  res.status(StatusCodes.ACCEPTED).json(user)
+const resolveUserFromRequest = async (req) => {
+  const userId = req.user?._id
+  let user = null
+  if (userId) {
+    user = await User.findById(userId).select('-password -refreshToken')
+  }
+  // Fallback: nếu _id trong token cũ (do re-seed db), tìm bằng phone hoặc email
+  if (!user && (req.user?.phone || req.user?.email)) {
+    const orList = []
+    if (req.user.phone) orList.push({ phone: req.user.phone })
+    if (req.user.email) orList.push({ email: req.user.email })
+    if (orList.length > 0) {
+      user = await User.findOne({ $or: orList }).select('-password -refreshToken')
+    }
+  }
+  return user
+}
+
+const refreshCookieIfNeeded = (res, req, user) => {
+  if (user && req.user && String(user._id) !== String(req.user._id)) {
+    const newPayload = {
+      _id: user._id,
+      role: user.role,
+      phone: user.phone,
+      name: user.name,
+      avatar: user.avatar,
+      email: user.email
+    }
+    const newAccessToken = genarateAccessToken(newPayload)
+    res.cookie('token', newAccessToken, {
+      httpOnly: true,
+      secure: env.IS_SERCURE_COOKIE,
+      sameSite: env.COOKIE_SAMESITE || 'lax',
+      maxAge: 24 * 60 * 60 * 1000
+    })
+    req.user = newPayload
+  }
+}
+
+const getProfile = async (req, res) => {
+  try {
+    const user = await resolveUserFromRequest(req)
+    if (!user) {
+      res.clearCookie('token', {
+        httpOnly: true,
+        sameSite: env.COOKIE_SAMESITE || 'lax',
+        secure: env.IS_SERCURE_COOKIE
+      })
+      return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Người dùng không tồn tại' })
+    }
+    refreshCookieIfNeeded(res, req, user)
+    res.status(StatusCodes.ACCEPTED).json(user)
+  } catch (error) {
+    console.error('Get profile error:', error)
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Lỗi server' })
+  }
 }
 
 const getUserProfile = async (req, res) => {
   try {
-    const userId = req.user._id
-    const user = await User.findById(userId).select('-password -refreshToken')
-
+    const user = await resolveUserFromRequest(req)
     if (!user) {
       return res.status(StatusCodes.NOT_FOUND).json({
         message: 'Không tìm thấy người dùng'
       })
     }
-
+    refreshCookieIfNeeded(res, req, user)
     res.status(StatusCodes.OK).json(user)
   } catch (error) {
     console.error('Get user profile error:', error)
@@ -47,7 +100,14 @@ const uploadAvatar = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const userId = req.user._id
+    const user = await resolveUserFromRequest(req)
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: 'Không tìm thấy người dùng'
+      })
+    }
+    refreshCookieIfNeeded(res, req, user)
+    const userId = user._id
     const { name, email, gender, address, dob, avatar } = req.body
 
     // Handle avatar upload if file is provided
