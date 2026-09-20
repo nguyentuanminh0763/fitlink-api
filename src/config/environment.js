@@ -25,6 +25,9 @@ export const env = {
   GG_CLIENT_ID: process.env.GG_CLIENT_ID || "",
   GG_CLIENT_SECRET: process.env.GG_CLIENT_SECRET || "",
   EMAIL_FROM: process.env.EMAIL_FROM || process.env.EMAIL_USER || "",
-  REDIS_URI: process.env.REDIS_URI || "",
+  REDIS_MODE: process.env.REDIS_MODE || 'local',
+  REDIS_LOCAL_URI: process.env.REDIS_LOCAL_URI || 'redis://127.0.0.1:6379',
+  REDIS_CLOUD_URI: process.env.REDIS_CLOUD_URI || '',
+  REDIS_URI: process.env.REDIS_URI || '',
   CACHE_DEFAULT_TTL: Number(process.env.CACHE_DEFAULT_TTL) || 300
 }
