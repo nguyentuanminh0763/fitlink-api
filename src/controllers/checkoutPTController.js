@@ -233,6 +233,9 @@ const createPaymentLink = async (req, res) => {
         if (!trans) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch' });
         }
+        if (String(trans.student) !== String(req.user?._id)) {
+            return res.status(403).json({ success: false, message: 'Bạn không có quyền thực hiện giao dịch này' });
+        }
         if (trans.status !== 'initiated') {
             return res.status(400).json({ success: false, message: 'Trạng thái giao dịch không hợp lệ (phải là initiated)' });
         }
@@ -343,6 +346,11 @@ const confirmPayment = async (req, res) => {
 
         if (!trans) {
             return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Không tìm thấy giao dịch' });
+        }
+
+        const studentOwnerId = trans.student?._id || trans.student;
+        if (String(studentOwnerId) !== String(req.user?._id)) {
+            return res.status(StatusCodes.FORBIDDEN).json({ success: false, message: 'Bạn không có quyền xác nhận giao dịch này' });
         }
 
 
