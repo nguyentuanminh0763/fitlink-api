@@ -1,0 +1,37 @@
+# Azure DevOps CI Pipeline for FitLink API
+trigger:
+  branches:
+    include:
+      - main
+      - dev
+
+pr:
+  branches:
+    include:
+      - main
+      - dev
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: '1. Setup Node.js 20'
+
+- script: |
+    npm ci
+  displayName: '2. Install Dependencies (npm ci)'
+
+- script: |
+    npx vitest run src/__tests__/pricing.test.js
+  displayName: '3. Run Core Pricing Unit Tests'
+
+- script: |
+    npm run build
+  displayName: '4. Verify Babel Production Build'
+
+- script: |
+    docker build -t fitlink-api:ci-test .
+  displayName: '5. Verify Multi-Stage Dockerfile Build'
