@@ -7,7 +7,13 @@ import { createNotification } from '../services/notificationService.js'
 export const initChatSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        const allowed = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080'];
+        if (!origin || allowed.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Socket CORS blocked: ${origin}`));
+      },
       credentials: true
     }
   })
