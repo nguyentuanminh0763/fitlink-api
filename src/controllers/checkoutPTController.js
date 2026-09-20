@@ -116,7 +116,7 @@ const initBookingAndTransaction = async (req, res) => {
 
             packageSnapshot: packageSnapshotInput,
             // pricing: pricingInput, amount, currency, notes — có thể bỏ qua để server làm chuẩn
-            amount, currency, notes
+            currency, notes
         } = req.body;
 
         if (!pt || !packageId || !Array.isArray(pattern) || !slot?.start || !slot?.end || !startDate) {
@@ -177,7 +177,7 @@ const initBookingAndTransaction = async (req, res) => {
 
             packageSnapshot: pkgSnap,
             pricing: pricingR,                                // ✅ đồng nhất
-            amount: amount ?? amountR,                        // FE có thể override; nếu không thì server
+            amount: amountR,                                 // luôn dùng giá server tính
             currency: currencySnap,
 
             status: 'PENDING_PAYMENT',
