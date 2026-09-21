@@ -1,4 +1,4 @@
-# Azure DevOps CI Pipeline for FitLink API
+# Azure DevOps CI/CD Pipeline for FitLink API
 trigger:
   branches:
     include:
@@ -32,13 +32,24 @@ steps:
     npm run build
   displayName: '4. Verify Babel Production Build'
 
+- task: Docker@2
+  displayName: '5. Build and Push to Azure Container Registry (CD)'
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  inputs:
+    containerRegistry: 'fitlinkacr-sc'
+    repository: 'fitlink-api'
+    command: 'buildAndPush'
+    Dockerfile: '**/Dockerfile'
+    tags: |
+      $(Build.BuildId)
+      latest
+
 - powershell: |
     docker info > $null 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "Docker daemon is active. Verifying multi-stage Docker build..."
+        Write-Host "Verifying Docker build for PR..."
         docker build -t fitlink-api:ci-test .
         if ($LASTEXITCODE -ne 0) { exit 1 }
-    } else {
-        Write-Host "##vso[task.logissue type=warning]Docker Desktop is not currently running. Skipping container build verification."
     }
-  displayName: '5. Verify Multi-Stage Dockerfile Build'
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  displayName: '5. Verify Multi-Stage Dockerfile Build (PR Validation Only)'
