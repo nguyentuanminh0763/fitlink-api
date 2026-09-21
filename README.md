@@ -98,18 +98,54 @@ PLATFORM_FEE_PERCENT=20
 # Development (with hot-reload via nodemon & babel-node)
 npm run dev
 
-# Build for production
+# Run Automated Vitest Test Suite (Unit & Integration tests)
+npm test
+
+# Single test run (CI mode)
+npm run test:run
+
+# Build for production (Babel transpilation to build/)
 npm run build
 
 # Start production server
 npm run production
 ```
 
+### 5. Running with Docker Compose (Replica Set & Redis)
+From the project root (`D:\2025\PROJECT_WDP`):
+```bash
+docker compose up -d
+```
+This spins up:
+- **MongoDB** with Replica Set `rs0` enabled (supporting ACID transactions on local).
+- **Redis 7** for fast Cache-Aside data retrieval.
+- **FitLink Backend** container.
+
 ---
 
-## 🛡️ Security & Conventions
+## 🧪 Testing Suite (Vitest)
 
-1. **Authentication:** Uses secure `httpOnly` cookies (`token`) preventing XSS token theft.
-2. **Error Handling:** Centralized `errorHandlingMiddleware` prevents stack trace leaks in non-development environments.
-3. **Data Integrity:** Compound MongoDB indexes on `(ptId + date + timeSlot)` to avoid overlapping slot bookings.
-4. **API Responses:** Uniform JSON responses formatted as `{ statusCode, message, ...data }`.
+The backend includes automated tests verifying financial calculations and transaction integrity:
+- `src/__tests__/pricing.test.js`: Validates package pricing logic, percentage platform fee deductions, and edge cases.
+- `src/__tests__/transaction.test.js`: Validates MongoDB Multi-Document ACID transaction rollback on failure, and confirms idempotency of `creditPTWalletIdempotent` (guaranteeing wallet balances cannot be double-credited upon retry).
+
+---
+
+## 🔄 CI/CD Pipeline (Azure DevOps)
+
+Automated continuous integration is configured in `azure-pipelines.yml`:
+- Runs on a **Self-Hosted Windows Agent** (`D:\agent`, pool `Default`).
+- Automatically triggers on push and pull-requests to `dev` and `main`.
+- Executes dependency installation (`npm install`), Vitest tests (`npm run test:run`), Babel build (`npm run build`), and Docker dry-run build (`docker build`).
+- Typical execution time: **~1 minute 07 seconds**.
+
+---
+
+## 🛡️ Security & Integrity Hardening
+
+1. **Authentication:** Secure `httpOnly` cookies (`token`) prevent XSS token theft.
+2. **WebSocket Security:** Socket.IO handshakes strictly authenticate the user's JWT from `httpOnly` cookies (`chatSocket.js`), preventing room eavesdropping and identity spoofing.
+3. **Idempotency & Concurrency:** PT wallet credits use atomic MongoDB queries (`$ne` on `processedTransactions`), guaranteeing single execution even under network retries.
+4. **Data Integrity:** Compound MongoDB indexes on `(pt: 1, startTime: 1)` in `Slot.js` and `(slot: 1)` in `Session.js` prevent double-booking at the database level.
+5. **Price & Transaction Ownership:** Server calculates payment totals strictly using `calcBookingPricing()`; transactions enforce user ownership (`trans.student === req.user._id`).
+
