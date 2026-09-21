@@ -21,8 +21,8 @@ steps:
   displayName: '1. Setup Node.js 20'
 
 - script: |
-    npm install --prefer-offline --no-audit
-  displayName: '2. Install Dependencies (npm install)'
+    npm ci
+  displayName: '2. Install Clean Dependencies (npm ci)'
 
 - script: |
     npx vitest run src/__tests__/pricing.test.js

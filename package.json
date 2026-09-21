@@ -5,8 +5,10 @@
   "author": "",
   "description": "",
   "engines": {
-    "node": ">=18.x"
+    "node": ">=20.x",
+    "npm": ">=10.x"
   },
+  "packageManager": "npm@10.8.2",
   "scripts": {
     "lint": "eslint src --ext js --report-unused-disable-directives --max-warnings 0",
     "clean": "node -e \"fs.rmSync('build', { recursive: true, force: true }); fs.mkdirSync('build', { recursive: true });\"",
