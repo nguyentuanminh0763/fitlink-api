@@ -4,7 +4,8 @@ import path from 'path'
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node'
+    environment: 'node',
+    include: ['src/__tests__/**/*.test.js']
   },
   resolve: {
     alias: {

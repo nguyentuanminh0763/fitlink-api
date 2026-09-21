@@ -1,4 +1,5 @@
 import express from "express";
+import "express-async-errors";
 import { env } from "~/config/environment";
 import { errorHandlingMiddleware } from "~/middlewares/errorHandlingMiddleware";
 import { connectDB } from "~/config/database";
