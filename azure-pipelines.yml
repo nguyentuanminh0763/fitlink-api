@@ -69,10 +69,14 @@ steps:
 # tạo revision mới, và luôn truy được chính xác build nào đang chạy production.
 - task: AzureCLI@2
   displayName: '6. Deploy new revision to Azure Container Apps'
-  # Tự bỏ qua khi chưa cấu hình xong, để pipeline không đỏ oan.
+  # CHỈ deploy từ main. dev là nhánh thử nghiệm: vẫn build, test và đẩy image lên
+  # ACR để kiểm chứng, nhưng không đụng tới production. Production chỉ đổi khi
+  # dev được merge vào main.
+  # Build của PR có SourceBranch là refs/pull/N/merge nên tự động bị loại.
+  # Điều kiện CHANGE_ME giữ pipeline xanh khi chưa cấu hình xong service connection.
   condition: >-
     and(succeeded(),
-        ne(variables['Build.Reason'], 'PullRequest'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main'),
         ne(variables['AZURE_RESOURCE_GROUP'], 'CHANGE_ME'))
   inputs:
     azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
