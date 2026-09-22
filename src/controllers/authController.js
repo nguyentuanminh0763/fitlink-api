@@ -57,12 +57,15 @@ const loginWithGoogle = async (req, res) => {
     let user = await User.findOne({ email })
     if (!user) {
       // Nếu chưa có thì tạo mới
+      // KHÔNG gán phone: '' hay password: ''. Index phone_1 là unique với
+      // partialFilterExpression { phone: { $type: 'string' } }, mà chuỗi rỗng
+      // VẪN là string nên nó lọt vào index — user Google thứ hai sẽ đụng
+      // E11000 duplicate key { phone: "" }. Bỏ hẳn field thì nó không tồn tại,
+      // không vào index, bao nhiêu user Google cũng được.
       user = new User({
         email,
         name,
         avatar: picture,
-        phone: '', // Google không trả phone
-        password: '', // không cần password
         isActive: true,
         role: Roles.STUDENT,
         googleId: sub
