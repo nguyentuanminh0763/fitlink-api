@@ -21,5 +21,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-.env
-.env.production
+# Chặn mọi biến thể .env (.env, .env.production, .env.bak, .env.old...),
+# chỉ chừa file mẫu. Liệt kê từng tên một sẽ luôn sót một biến thể nào đó.
+.env*
+!.env.example
