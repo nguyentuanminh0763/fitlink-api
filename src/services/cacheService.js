@@ -137,6 +137,31 @@ class CacheService {
     }
   }
 
+  /**
+   * Dọn cache liên quan tới MỘT huấn luyện viên, thay vì xoá sạch mọi key.
+   *
+   * Xoá theo cả id lẫn slug vì route chi tiết `/api/pt/public/:id` nhận cả hai,
+   * mà cache key sinh từ `originalUrl` nên tồn tại ở hai dạng khác nhau.
+   *
+   * Key danh sách buộc phải xoá kèm: kết quả tìm kiếm có nhúng giá gói và thông
+   * tin hồ sơ, nên một PT đổi dữ liệu là cả danh sách sai theo.
+   *
+   * ponytail: pattern danh sách quét luôn key chi tiết `/api/search/pts/<id>`
+   * của PT khác, vì glob không phân biệt được '?' với '/'. Ba endpoint chi tiết
+   * còn lại thì đã được giữ nguyên. Muốn chính xác tuyệt đối phải đổi sang key
+   * có cấu trúc qua `keyGenerator` của `cacheResponse` thay vì lấy nguyên
+   * originalUrl. Ngoài ra `delByPattern` đang dùng lệnh KEYS của Redis (O(N),
+   * chặn server) — nên đổi sang SCAN nếu keyspace lớn dần.
+   */
+  async invalidatePT(ptId, slug) {
+    const jobs = [];
+    if (ptId) jobs.push(this.delByPattern(`api:*${ptId}*`));
+    if (slug) jobs.push(this.delByPattern(`api:*${slug}*`));
+    jobs.push(this.delByPattern('api:/api/search/pts*'));
+    jobs.push(this.delByPattern('api:/api/pt/public/list*'));
+    await Promise.all(jobs);
+  }
+
   getStatus() {
     return {
       type: this.isRedisReady ? 'redis' : 'in-memory',

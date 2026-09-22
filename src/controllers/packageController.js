@@ -35,6 +35,13 @@ function normalizePatterns(input) {
     .filter((p) => p.length > 0);
 }
 
+// Dọn cache của riêng PT sở hữu gói này. Cần tra slug vì route chi tiết PT nhận
+// cả ObjectId lẫn slug, nên cache tồn tại ở hai dạng key khác nhau.
+const invalidateCacheForPackage = async (pkg) => {
+  const profile = await PTProfile.findOne({ user: pkg.pt }).select('slug').lean();
+  await cacheService.invalidatePT(pkg.pt, profile?.slug);
+};
+
 // PT tạo gói mới
 const createPackage = async (req, res) => {
   try {
@@ -84,8 +91,7 @@ const createPackage = async (req, res) => {
 
     const pkg = await Package.create(payload);
 
-    cacheService.delByPattern('api:*package*');
-    cacheService.delByPattern('api:*pt*');
+    await invalidateCacheForPackage(pkg);
 
     return res.status(StatusCodes.CREATED).json({
       success: true,
@@ -264,8 +270,7 @@ const updatePackage = async (req, res) => {
 
     await pkg.save();
 
-    cacheService.delByPattern('api:*package*');
-    cacheService.delByPattern('api:*pt*');
+    await invalidateCacheForPackage(pkg);
 
     return res.status(StatusCodes.OK).json({
       success: true,
@@ -306,8 +311,7 @@ const deletePackage = async (req, res) => {
     pkg.isActive = false;
     await pkg.save();
 
-    cacheService.delByPattern('api:*package*');
-    cacheService.delByPattern('api:*pt*');
+    await invalidateCacheForPackage(pkg);
 
     return res.status(StatusCodes.OK).json({ success: true, message: 'Đã ẩn gói tập thành công' });
   } catch (error) {
@@ -337,8 +341,7 @@ const hardDeletePackage = async (req, res) => {
 
     await pkg.deleteOne();
 
-    cacheService.delByPattern('api:*package*');
-    cacheService.delByPattern('api:*pt*');
+    await invalidateCacheForPackage(pkg);
 
     return res.status(StatusCodes.OK).json({ success: true, message: 'Đã xoá gói tập vĩnh viễn' });
   } catch (error) {
