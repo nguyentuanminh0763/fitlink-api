@@ -6,6 +6,7 @@ import PTProfile from "~/models/PTProfile";
 import PTWallet from "~/models/PTWallet";
 import Package from "~/models/Package";
 import { Roles, Genders, PackageTags } from "~/domain/enums";
+import { slugify } from "~/utils/formatters";
 
 const seed = async () => {
   try {
@@ -402,6 +403,226 @@ const seed = async () => {
       }
     }
 
+    // ============================================================
+    // 2b. SINH THÊM 90 PT TRẢI ĐỦ 3 MIỀN (tổng cộng 100 PT)
+    // ============================================================
+    // Sinh theo chỉ số, không dùng random, để mỗi lần seed ra đúng cùng một tập
+    // dữ liệu — cần thiết khi kiểm chứng phân trang và tìm kiếm theo toạ độ.
+    console.log("🗺️  Creating 90 generated PTs across 3 regions...");
+
+    const REGIONS = [
+      {
+        name: "Miền Bắc",
+        cities: [
+          { city: "Hà Nội", area: "Phường Dịch Vọng, Cầu Giấy", coords: [105.7905, 21.0333] },
+          { city: "Hà Nội", area: "Phường Bách Khoa, Hai Bà Trưng", coords: [105.8467, 21.0051] },
+          { city: "Hải Phòng", area: "Phường Máy Tơ, Ngô Quyền", coords: [106.6881, 20.8449] },
+          { city: "Quảng Ninh", area: "Phường Bãi Cháy, Hạ Long", coords: [107.0448, 20.9518] },
+          { city: "Bắc Ninh", area: "Phường Suối Hoa", coords: [106.0763, 21.1861] },
+          { city: "Thái Nguyên", area: "Phường Hoàng Văn Thụ", coords: [105.8442, 21.5942] },
+          { city: "Nam Định", area: "Phường Vị Hoàng", coords: [106.1683, 20.4388] },
+        ],
+      },
+      {
+        name: "Miền Trung",
+        cities: [
+          { city: "Đà Nẵng", area: "Phường Thạch Thang, Hải Châu", coords: [108.2208, 16.0678] },
+          { city: "Đà Nẵng", area: "Phường Mỹ An, Ngũ Hành Sơn", coords: [108.2450, 16.0344] },
+          { city: "Thừa Thiên Huế", area: "Phường Vĩnh Ninh, Huế", coords: [107.5909, 16.4637] },
+          { city: "Khánh Hoà", area: "Phường Lộc Thọ, Nha Trang", coords: [109.1967, 12.2388] },
+          { city: "Quảng Nam", area: "Phường Minh An, Hội An", coords: [108.3300, 15.8801] },
+          { city: "Bình Định", area: "Phường Lê Lợi, Quy Nhơn", coords: [109.2237, 13.7829] },
+          { city: "Nghệ An", area: "Phường Hưng Bình, Vinh", coords: [105.6921, 18.6733] },
+        ],
+      },
+      {
+        name: "Miền Nam",
+        cities: [
+          { city: "TP.HCM", area: "Phường Bến Nghé, Quận 1", coords: [106.7009, 10.7797] },
+          { city: "TP.HCM", area: "Phường Tân Sơn Nhì, Tân Phú", coords: [106.6297, 10.7969] },
+          { city: "TP.HCM", area: "Phường Hiệp Bình Chánh, Thủ Đức", coords: [106.7245, 10.8320] },
+          { city: "Đồng Nai", area: "Phường Trung Dũng, Biên Hoà", coords: [106.8296, 10.9574] },
+          { city: "Cần Thơ", area: "Phường Xuân Khánh, Ninh Kiều", coords: [105.7700, 10.0300] },
+          { city: "Bình Dương", area: "Phường Phú Hoà, Thủ Dầu Một", coords: [106.6519, 10.9804] },
+          { city: "Bà Rịa - Vũng Tàu", area: "Phường Thắng Tam, Vũng Tàu", coords: [107.0843, 10.3460] },
+        ],
+      },
+    ];
+
+    const SURNAMES = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng", "Bùi", "Đỗ", "Hồ", "Ngô", "Dương"];
+    const MALE_GIVEN = ["Văn Hùng", "Minh Tuấn", "Quốc Bảo", "Hữu Thắng", "Đức Anh", "Thanh Sơn", "Gia Huy", "Trọng Nghĩa", "Xuân Trường", "Công Vinh", "Nhật Nam", "Tiến Dũng", "Khắc Huy", "Anh Khoa", "Bá Lộc"];
+    const FEMALE_GIVEN = ["Minh Châu", "Thu Hà", "Ngọc Ánh", "Khánh Linh", "Phương Thảo", "Hải Yến", "Bảo Trân", "Diễm My", "Mai Chi", "Thanh Tâm", "Tuyết Nhi", "Quỳnh Anh", "Hà Vy", "Lan Hương", "Thuỳ Dung"];
+    const STREETS = ["Nguyễn Trãi", "Lê Lợi", "Trần Phú", "Hai Bà Trưng", "Quang Trung", "Nguyễn Huệ", "Lý Thường Kiệt", "Phan Chu Trinh", "Hoàng Hoa Thám", "Nguyễn Thị Minh Khai"];
+
+    const ARCHETYPES = [
+      {
+        gymPrefix: "Iron House Gym",
+        specialties: ["Tăng cơ (Hypertrophy)", "Sức mạnh nền tảng", "Dinh dưỡng Macro"],
+        bio: "HLV thể hình tập trung vào tăng cơ nạc, chuẩn form động tác và giáo án dinh dưỡng theo từng giai đoạn.",
+        pkgName: "Gói Tăng Cơ Nền Tảng",
+        pkgDesc: "Giáo án Hypertrophy chia nhóm cơ, theo dõi khối lượng tập và điều chỉnh mỗi tuần.",
+        basePrice: 4200000, sessions: 12, durationMin: 60, days: 45,
+        tags: [PackageTags.MUSCLE_GAIN, PackageTags.STRENGTH],
+        daysOfWeek: [1, 3, 5],
+      },
+      {
+        gymPrefix: "Zen Yoga Studio",
+        specialties: ["Yoga phục hồi", "Pilates cơ bản", "Chỉnh dáng tư thế"],
+        bio: "Chuyên Yoga trị liệu và Pilates cho dân văn phòng bị đau cổ vai gáy, võng lưng và lệch vai.",
+        pkgName: "Gói Yoga Chỉnh Dáng",
+        pkgDesc: "Kết hợp thở, giãn cơ sâu và bài tập cột sống giúp cải thiện tư thế sau 10 buổi.",
+        basePrice: 3800000, sessions: 10, durationMin: 60, days: 40,
+        tags: [PackageTags.POSTURE, PackageTags.REHAB, PackageTags.GENERAL_HEALTH],
+        daysOfWeek: [2, 4, 6],
+      },
+      {
+        gymPrefix: "Warrior Boxing Club",
+        specialties: ["Boxing cơ bản", "Kickboxing", "Thể lực & phản xạ"],
+        bio: "Cựu vận động viên đối kháng, huấn luyện kỹ thuật boxing, thể lực nền và phản xạ cho người mới.",
+        pkgName: "Gói Boxing Nhập Môn",
+        pkgDesc: "Học đòn tay cơ bản, di chuyển chân và thể lực đối kháng, phù hợp người chưa từng tập.",
+        basePrice: 4500000, sessions: 14, durationMin: 75, days: 50,
+        tags: [PackageTags.ENDURANCE, PackageTags.STRENGTH],
+        daysOfWeek: [2, 4, 6],
+      },
+      {
+        gymPrefix: "Shape Up Fitness",
+        specialties: ["Giảm mỡ chuyên sâu", "Cardio HIIT", "Tư vấn thực đơn"],
+        bio: "Chuyên lộ trình giảm mỡ bền vững, không nhịn ăn cực đoan, bám sát chỉ số cơ thể hàng tuần.",
+        pkgName: "Gói Giảm Mỡ 8 Tuần",
+        pkgDesc: "Kết hợp HIIT và tập kháng lực, kèm thực đơn linh hoạt theo khẩu vị người Việt.",
+        basePrice: 4900000, sessions: 16, durationMin: 60, days: 60,
+        tags: [PackageTags.WEIGHT_LOSS, PackageTags.NUTRITION],
+        daysOfWeek: [1, 3, 5],
+      },
+      {
+        gymPrefix: "ReCore Rehab Center",
+        specialties: ["Phục hồi chấn thương", "Vật lý trị liệu thể thao", "Tập cho người lớn tuổi"],
+        bio: "Nền tảng vật lý trị liệu, chuyên hỗ trợ phục hồi sau chấn thương gối, vai và thoát vị đĩa đệm nhẹ.",
+        pkgName: "Gói Phục Hồi Vận Động",
+        pkgDesc: "Bài tập cường độ thấp tăng dần, ưu tiên an toàn khớp và kiểm soát cơn đau.",
+        basePrice: 5200000, sessions: 12, durationMin: 50, days: 50,
+        tags: [PackageTags.REHAB, PackageTags.GENERAL_HEALTH],
+        daysOfWeek: [2, 4, 6],
+      },
+      {
+        gymPrefix: "Pulse Dance & Cardio",
+        specialties: ["Dance Cardio", "Zumba", "Tăng sức bền"],
+        bio: "Huấn luyện Dance Cardio và Zumba, buổi tập vui, cường độ vừa, phù hợp người ngại phòng tạ.",
+        pkgName: "Gói Dance Cardio Vui Khoẻ",
+        pkgDesc: "Nhịp điệu sôi động giúp tiêu hao năng lượng mà không tạo áp lực tâm lý khi mới bắt đầu.",
+        basePrice: 3600000, sessions: 16, durationMin: 60, days: 60,
+        tags: [PackageTags.WEIGHT_LOSS, PackageTags.ENDURANCE],
+        daysOfWeek: [1, 3, 5],
+      },
+    ];
+
+    const GEN_COUNT = 90;
+    const genMeta = [];
+    const genUsers = [];
+
+    for (let i = 0; i < GEN_COUNT; i++) {
+      const region = REGIONS[i % REGIONS.length];
+      const city = region.cities[Math.floor(i / REGIONS.length) % region.cities.length];
+      const arch = ARCHETYPES[i % ARCHETYPES.length];
+      const isMale = i % 2 === 0;
+      const given = isMale ? MALE_GIVEN[i % MALE_GIVEN.length] : FEMALE_GIVEN[i % FEMALE_GIVEN.length];
+      const name = `${SURNAMES[i % SURNAMES.length]} ${given}`;
+      const seq = i + 11; // tiếp nối 10 PT viết tay ở trên
+
+      genUsers.push({
+        name,
+        email: `pt.${slugify(name)}${seq}@fitlink.vn`,
+        phone: `0${910000000 + i}`,
+        password: defaultPassword,
+        role: Roles.PT,
+        gender: isMale ? Genders.MALE : Genders.FEMALE,
+        avatar: isMale
+          ? "https://images.unsplash.com/photo-1567013127542-490d757e51fc?w=300"
+          : "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300",
+        isActive: true,
+      });
+
+      genMeta.push({ i, seq, name, region, city, arch });
+    }
+
+    const createdPTs = await User.insertMany(genUsers);
+
+    const genProfiles = createdPTs.map((u, idx) => {
+      const { i, seq, name, region, city, arch } = genMeta[idx];
+      // Toạ độ lệch nhẹ quanh tâm thành phố (~1km mỗi bước) để PT không chồng lên nhau
+      const lng = Number((city.coords[0] + ((i % 7) - 3) * 0.008).toFixed(6));
+      const lat = Number((city.coords[1] + ((i % 5) - 2) * 0.008).toFixed(6));
+
+      return {
+        user: u._id,
+        slug: `${slugify(name)}-${seq}`,
+        bio: arch.bio,
+        specialties: arch.specialties,
+        yearsExperience: 2 + (i % 9),
+        primaryGym: {
+          name: `${arch.gymPrefix} ${city.city}`,
+          address: `${12 + (i % 200)} ${STREETS[i % STREETS.length]}, ${city.area}, ${city.city}`,
+          location: { type: "Point", coordinates: [lng, lat] },
+          photos: ["https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500"],
+        },
+        areaNote: `${city.city} - ${region.name}`,
+        deliveryModes: {
+          atPtGym: true,
+          atClient: i % 3 !== 0,
+          atOtherGym: i % 4 === 0,
+        },
+        travelPolicy: {
+          enabled: true,
+          freeRadiusKm: 4 + (i % 4),
+          maxTravelKm: 12 + (i % 9),
+          feePerKm: 8000 + (i % 3) * 2000,
+        },
+        workingHours: [1, 2, 3, 4, 5, 6].map((d) => ({
+          dayOfWeek: d,
+          intervals: [{ start: d === 6 ? "08:00" : "06:30", end: d === 6 ? "18:00" : "21:00" }],
+        })),
+        availableForNewClients: true,
+        verified: true,
+        ratingAvg: Number((4 + ((i * 7) % 10) / 10).toFixed(1)),
+        ratingCount: 5 + ((i * 13) % 60),
+      };
+    });
+
+    const genWallets = createdPTs.map((u, idx) => ({
+      pt: u._id,
+      available: 1000000 + (genMeta[idx].i % 12) * 500000,
+      pending: (genMeta[idx].i % 5) * 400000,
+      totalEarned: 6000000 + (genMeta[idx].i % 20) * 1500000,
+      withdrawn: (genMeta[idx].i % 9) * 800000,
+    }));
+
+    const genPackages = createdPTs.map((u, idx) => {
+      const { i, arch } = genMeta[idx];
+      return {
+        pt: u._id,
+        name: `${arch.pkgName} - ${arch.sessions} Buổi`,
+        description: arch.pkgDesc,
+        price: arch.basePrice + (i % 5) * 300000,
+        totalSessions: arch.sessions,
+        sessionDurationMin: arch.durationMin,
+        durationDays: arch.days,
+        visibility: "public",
+        isActive: true,
+        tags: arch.tags,
+        recurrence: { daysOfWeek: [arch.daysOfWeek] },
+      };
+    });
+
+    await PTProfile.insertMany(genProfiles);
+    await PTWallet.insertMany(genWallets);
+    await Package.insertMany(genPackages);
+
+    const regionCount = REGIONS.map((r) => ({
+      region: r.name,
+      count: genMeta.filter((m) => m.region.name === r.name).length,
+    }));
+
     // 3. STUDENTS
     console.log("🎓 Creating Students...");
     const studentUsers = [
@@ -430,9 +651,16 @@ const seed = async () => {
       });
     }
 
+    const totalPTs = await User.countDocuments({ role: Roles.PT });
+    const totalPackages = await Package.countDocuments({});
+
     console.log("\n=========================================");
     console.log("🎉 SEED HOÀN TẤT THÀNH CÔNG RỰC RỠ!");
     console.log("=========================================");
+    console.log(`🏋️  Tổng số PT: ${totalPTs}  |  Gói tập: ${totalPackages}`);
+    regionCount.forEach((r) => console.log(`   - ${r.region}: ${r.count} PT`));
+    console.log("   - 10 PT viết tay (TP.HCM) từ bộ dữ liệu gốc");
+    console.log("-----------------------------------------");
     console.log("🔑 Mật khẩu chung cho tất cả tài khoản: 123456");
     console.log("1. Admin:   admin@fitlink.vn");
     console.log("2. PT 1:    pt.hung@fitlink.vn (Gym/Tăng cơ)");
