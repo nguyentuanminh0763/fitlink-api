@@ -14,6 +14,16 @@ pr:
 pool:
   name: 'Default'
 
+# Giá trị mặc định ở đây, ghi đè được trong Pipeline UI / Variable Group.
+# AZURE_SERVICE_CONNECTION phải là service connection loại Azure Resource Manager.
+# 'fitlinkacr-sc' KHÔNG dùng được cho bước deploy — nó chỉ có quyền với registry.
+variables:
+  AZURE_SERVICE_CONNECTION: 'fitlink-arm-sc'
+  AZURE_RESOURCE_GROUP: 'CHANGE_ME'
+  ACR_LOGIN_SERVER: 'fitlinkacr.azurecr.io'
+  CONTAINER_APP_NAME: 'fitlink-api'
+  ACR_REPOSITORY: 'fitlink-api'
+
 steps:
 - task: NodeTool@0
   inputs:
@@ -53,3 +63,31 @@ steps:
     }
   condition: eq(variables['Build.Reason'], 'PullRequest')
   displayName: '5. Verify Multi-Stage Dockerfile Build (PR Validation Only)'
+
+# Deploy thật: đẩy image vừa build xuống Container App.
+# Dùng tag $(Build.BuildId) thay vì 'latest' — tag bất biến buộc Container App
+# tạo revision mới, và luôn truy được chính xác build nào đang chạy production.
+- task: AzureCLI@2
+  displayName: '6. Deploy new revision to Azure Container Apps'
+  # Tự bỏ qua khi chưa cấu hình xong, để pipeline không đỏ oan.
+  condition: >-
+    and(succeeded(),
+        ne(variables['Build.Reason'], 'PullRequest'),
+        ne(variables['AZURE_RESOURCE_GROUP'], 'CHANGE_ME'))
+  inputs:
+    azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      set -e
+      az containerapp update \
+        --name "$(CONTAINER_APP_NAME)" \
+        --resource-group "$(AZURE_RESOURCE_GROUP)" \
+        --image "$(ACR_LOGIN_SERVER)/$(ACR_REPOSITORY):$(Build.BuildId)"
+
+      echo "Revision đang hoạt động sau khi deploy:"
+      az containerapp revision list \
+        --name "$(CONTAINER_APP_NAME)" \
+        --resource-group "$(AZURE_RESOURCE_GROUP)" \
+        --query "[?properties.active].{revision:name, image:properties.template.containers[0].image}" \
+        --output table
