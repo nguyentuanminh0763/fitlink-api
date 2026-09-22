@@ -249,17 +249,25 @@ export const getPTsByAvailableSlot = async (req, res) => {
     /* ----------------------------------------------------
        ✅ 14. Pagination
     ---------------------------------------------------- */
-    pipeline.push(
-      { $skip: (Number(page) - 1) * Number(limit) },
-      { $limit: Number(limit) }
-    );
+    // $facet chạy hai nhánh trên cùng tập đã lọc: một nhánh cắt trang, một nhánh
+    // đếm tổng. Đếm phải xảy ra TRƯỚC $limit, nếu không total chỉ bằng số phần tử
+    // của trang hiện tại và FE sẽ tính ra đúng 1 trang, giấu mất phần còn lại.
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, Number(limit) || 12));
+
+    pipeline.push({
+      $facet: {
+        items: [{ $skip: (pageNum - 1) * limitNum }, { $limit: limitNum }],
+        meta: [{ $count: "total" }],
+      },
+    });
 
     /* ----------------------------------------------------
        ✅ 15. Execute
     ---------------------------------------------------- */
-    const result = await PTProfile.aggregate(pipeline);
+    const [aggResult] = await PTProfile.aggregate(pipeline);
 
-    const itemsWithSlug = result.map(item => ({
+    const itemsWithSlug = (aggResult?.items || []).map(item => ({
       ...item,
       slug: item.slug || slugify(item.userInfo?.name)
     }));
@@ -267,9 +275,9 @@ export const getPTsByAvailableSlot = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Search PTs successful",
-      page: Number(page),
-      limit: Number(limit),
-      total: itemsWithSlug.length,
+      page: pageNum,
+      limit: limitNum,
+      total: aggResult?.meta?.[0]?.total || 0,
       items: itemsWithSlug,
     });
   } catch (error) {
