@@ -67,31 +67,35 @@ steps:
 # Deploy thật: đẩy image vừa build xuống Container App.
 # Dùng tag $(Build.BuildId) thay vì 'latest' — tag bất biến buộc Container App
 # tạo revision mới, và luôn truy được chính xác build nào đang chạy production.
-- task: AzureCLI@2
-  displayName: '6. Deploy new revision to Azure Container Apps'
-  # CHỈ deploy từ main. dev là nhánh thử nghiệm: vẫn build, test và đẩy image lên
-  # ACR để kiểm chứng, nhưng không đụng tới production. Production chỉ đổi khi
-  # dev được merge vào main.
-  # Build của PR có SourceBranch là refs/pull/N/merge nên tự động bị loại.
-  # Điều kiện CHANGE_ME giữ pipeline xanh khi chưa cấu hình xong service connection.
-  condition: >-
-    and(succeeded(),
-        eq(variables['Build.SourceBranch'], 'refs/heads/main'),
-        ne(variables['AZURE_RESOURCE_GROUP'], 'CHANGE_ME'))
-  inputs:
-    azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      set -e
-      az containerapp update \
-        --name "$(CONTAINER_APP_NAME)" \
-        --resource-group "$(AZURE_RESOURCE_GROUP)" \
-        --image "$(ACR_LOGIN_SERVER)/$(ACR_REPOSITORY):$(Build.BuildId)"
+#
+# ${{ if }} là biểu thức COMPILE-TIME: khi AZURE_RESOURCE_GROUP còn là CHANGE_ME
+# thì bước này không được biên dịch vào pipeline chút nào.
+# Bắt buộc phải làm vậy thay vì dùng condition: — Azure Pipelines phân giải
+# service connection ở bước VALIDATE, trước khi condition: được đánh giá, nên một
+# service connection chưa tồn tại vẫn làm hỏng cả pipeline dù bước đó bị skip.
+# Hệ quả: muốn bật deploy phải sửa giá trị TRONG FILE NÀY, đặt biến ở Pipeline UI
+# không có tác dụng (biến runtime không tồn tại ở thời điểm compile).
+- ${{ if ne(variables['AZURE_RESOURCE_GROUP'], 'CHANGE_ME') }}:
+  - task: AzureCLI@2
+    displayName: '6. Deploy new revision to Azure Container Apps'
+    # CHỈ deploy từ main. dev là nhánh thử nghiệm: vẫn build, test và đẩy image
+    # lên ACR để kiểm chứng, nhưng không đụng tới production.
+    # Build của PR có SourceBranch là refs/pull/N/merge nên tự động bị loại.
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    inputs:
+      azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        set -e
+        az containerapp update \
+          --name "$(CONTAINER_APP_NAME)" \
+          --resource-group "$(AZURE_RESOURCE_GROUP)" \
+          --image "$(ACR_LOGIN_SERVER)/$(ACR_REPOSITORY):$(Build.BuildId)"
 
-      echo "Revision đang hoạt động sau khi deploy:"
-      az containerapp revision list \
-        --name "$(CONTAINER_APP_NAME)" \
-        --resource-group "$(AZURE_RESOURCE_GROUP)" \
-        --query "[?properties.active].{revision:name, image:properties.template.containers[0].image}" \
-        --output table
+        echo "Revision đang hoạt động sau khi deploy:"
+        az containerapp revision list \
+          --name "$(CONTAINER_APP_NAME)" \
+          --resource-group "$(AZURE_RESOURCE_GROUP)" \
+          --query "[?properties.active].{revision:name, image:properties.template.containers[0].image}" \
+          --output table
