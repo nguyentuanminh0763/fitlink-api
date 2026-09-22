@@ -201,9 +201,8 @@ export const upsertMyProfile = async (req, res) => {
       }
     ).lean()
 
-    // Xóa cache để học viên thấy ngay cập nhật mới
-    cacheService.delByPattern('api:*pt*');
-    cacheService.delByPattern('api:*search*');
+    // Xoá cache của riêng PT này (kèm danh sách) để học viên thấy ngay cập nhật
+    await cacheService.invalidatePT(ptId, doc?.slug)
 
     return res
       .status(StatusCodes.OK)
@@ -241,6 +240,8 @@ const getPTProfilePublic = async (req, res) => {
 const deleteMyProfile = async (req, res) => {
   try {
     const ptId = req.user?._id
+    // Lấy slug TRƯỚC khi xoá, vì sau đó không còn tra được để dọn cache theo slug
+    const profile = await PTProfile.findOne({ user: ptId }).select('slug').lean()
     const r = await PTProfile.deleteOne({ user: ptId })
     if (r.deletedCount === 0) {
       return res
@@ -248,8 +249,7 @@ const deleteMyProfile = async (req, res) => {
         .json({ success: false, message: 'Không tìm thấy hồ sơ để xoá' })
     }
 
-    cacheService.delByPattern('api:*pt*');
-    cacheService.delByPattern('api:*search*');
+    await cacheService.invalidatePT(ptId, profile?.slug)
 
     return res
       .status(StatusCodes.OK)
@@ -278,8 +278,8 @@ const uploadCoverImage = async (req, res) => {
           { upsert: true }
         )
 
-        cacheService.delByPattern('api:*pt*');
-        cacheService.delByPattern('api:*search*');
+        const profile = await PTProfile.findOne({ user: req.user._id }).select('slug').lean()
+        await cacheService.invalidatePT(req.user._id, profile?.slug)
 
         res.json({ success: true, url: result.secure_url })
       }

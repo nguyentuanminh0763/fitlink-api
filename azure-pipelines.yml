@@ -14,6 +14,7 @@ pr:
 pool:
   name: 'Default'
 
+
 steps:
 - task: NodeTool@0
   inputs:
@@ -53,3 +54,4 @@ steps:
     }
   condition: eq(variables['Build.Reason'], 'PullRequest')
   displayName: '5. Verify Multi-Stage Dockerfile Build (PR Validation Only)'
+
