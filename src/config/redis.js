@@ -6,34 +6,31 @@ let isRedisReady = false
 
 /**
  * ================================================================
- * CẤU HÌNH CHỌN LOẠI REDIS (DUAL-MODE SWITCH):
+ * CẤU HÌNH CHỌN LOẠI REDIS — đổi DUY NHẤT qua biến REDIS_MODE trong env:
  * ================================================================
- * Bạn có thể đổi trong .env qua biến REDIS_MODE: 'local' | 'cloud' | 'memory'
- * HOẶC nếu thích đổi trực tiếp tại file config này, hãy gán vào biến OVERRIDE_MODE bên dưới:
- *   - 'local'  : Dùng Docker Redis cục bộ (127.0.0.1:6379 - tốc độ 0ms)
- *   - 'cloud'  : Dùng Upstash Cloud Redis (Singapore - tốc độ ~50ms)
- *   - 'memory' : Tắt hoàn toàn Redis, dùng In-Memory RAM của Node.js
- *   - null     : Mặc định đọc theo biến REDIS_MODE trong file .env
+ *   - 'local'  : Redis trong docker compose (REDIS_LOCAL_URI, mặc định 127.0.0.1:6379)
+ *   - 'cloud'  : Upstash Cloud Redis (REDIS_CLOUD_URI)
+ *   - 'memory' : Tắt hẳn Redis, dùng In-Memory RAM của Node.js
+ * Giá trị khác: không kết nối Redis, checkEnv() dừng server và báo lỗi.
+ * Redis không kết nối được thì cacheService tự rơi về In-Memory.
  */
-const OVERRIDE_MODE = null
-
-const activeMode = OVERRIDE_MODE || env.REDIS_MODE || 'local'
+const activeMode = env.REDIS_MODE
 
 let targetUri = null
 let modeDescription = ''
 
 if (activeMode === 'cloud') {
   targetUri = env.REDIS_CLOUD_URI
-  modeDescription = 'Upstash Cloud Redis (Singapore)'
+  modeDescription = 'Cloud Redis (REDIS_CLOUD_URI)'
 } else if (activeMode === 'local') {
   targetUri = env.REDIS_LOCAL_URI
-  modeDescription = 'Local Docker Redis (127.0.0.1:6379)'
+  modeDescription = 'Local Redis (REDIS_LOCAL_URI)'
 } else if (activeMode === 'memory') {
   targetUri = null
   modeDescription = 'Node.js Server In-Memory RAM'
 } else {
-  targetUri = env.REDIS_URI || env.REDIS_LOCAL_URI
-  modeDescription = 'Custom Redis'
+  // Giá trị lạ (vd gõ nhầm "clould"): không kết nối — checkEnv() sẽ dừng server và báo lỗi
+  modeDescription = `REDIS_MODE không hợp lệ ("${activeMode}")`
 }
 
 if (targetUri) {

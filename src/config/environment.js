@@ -2,10 +2,8 @@ import 'dotenv/config'
 
 export const env = {
   MONGODB_URI: process.env.MONGODB_URI,
-  DATABASE_NAME: process.env.DATABASE_NAME,
   APP_HOST: process.env.APP_HOST,
   APP_PORT: process.env.APP_PORT,
-  AUTHOR: process.env.AUTHOR,
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
   // Bỏ "/" cuối để so khớp CORS và ghép URL (PayOS, email) luôn ổn định
@@ -24,12 +22,10 @@ export const env = {
   CHATBOT_GPT_N8N_API: process.env.CHATBOT_GPT_N8N_API || "",
   BUILD_MODE: process.env.BUILD_MODE || "dev",
   GG_CLIENT_ID: process.env.GG_CLIENT_ID || "",
-  GG_CLIENT_SECRET: process.env.GG_CLIENT_SECRET || "",
   EMAIL_FROM: process.env.EMAIL_FROM || process.env.EMAIL_USER || "",
   REDIS_MODE: process.env.REDIS_MODE || 'local',
   REDIS_LOCAL_URI: process.env.REDIS_LOCAL_URI || 'redis://127.0.0.1:6379',
   REDIS_CLOUD_URI: process.env.REDIS_CLOUD_URI || '',
-  REDIS_URI: process.env.REDIS_URI || '',
   CACHE_DEFAULT_TTL: Number(process.env.CACHE_DEFAULT_TTL) || 300
 }
 
@@ -52,6 +48,10 @@ export const checkEnv = () => {
     console.error(`❌ [ENV] Thiếu biến môi trường bắt buộc: ${missing.join(', ')} — xem .env.example`)
     process.exit(1)
   }
+  if (!['local', 'cloud', 'memory'].includes(env.REDIS_MODE)) {
+    console.error(`❌ [ENV] REDIS_MODE="${env.REDIS_MODE}" không hợp lệ — chỉ nhận local | cloud | memory`)
+    process.exit(1)
+  }
 
   const optionalFeatures = {
     'Email (đăng ký, quên mật khẩu)': ['EMAIL_USER', 'EMAIL_PASS'],
@@ -66,6 +66,7 @@ export const checkEnv = () => {
 
   console.log(`⚙️  [ENV] BUILD_MODE=${env.BUILD_MODE} · APP_PORT=${env.APP_PORT} · REDIS_MODE=${env.REDIS_MODE} · CLIENT_URL=${env.CLIENT_URL}`)
   if (disabled.length) console.warn(`⚠️  [ENV] Tắt do thiếu key: ${disabled.join(', ')}`)
+  if (env.REDIS_MODE === 'cloud' && !env.REDIS_CLOUD_URI) console.warn('⚠️  [ENV] REDIS_MODE=cloud nhưng REDIS_CLOUD_URI trống → dùng cache in-memory')
   if (env.CLIENT_URL.startsWith('https://')) {
     if (!env.IS_SERCURE_COOKIE) console.warn('⚠️  [ENV] CLIENT_URL là https nhưng IS_SERCURE_COOKIE không phải "true" → cookie đăng nhập thiếu cờ Secure')
     if (env.BUILD_MODE === 'dev') console.warn('⚠️  [ENV] CLIENT_URL là https nhưng BUILD_MODE=dev → lỗi trả stack trace cho client')

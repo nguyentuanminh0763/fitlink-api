@@ -96,7 +96,7 @@ A real environment variable always wins over `.env` (dotenv never overrides), so
 | `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET` | ✅ | placeholders | long random values | Wrap in single quotes if a value contains `$` |
 | `IS_SERCURE_COOKIE` | ✅ in prod | `false` | **`true`** | Misspelled on purpose — keep the name. `true` adds the `Secure` flag to the auth cookie |
 | `COOKIE_SAMESITE` | | `lax` | `lax` | |
-| `REDIS_MODE` | | `local` | `local` / `cloud` / `memory` | `memory` = no Redis. If Redis is unreachable the API falls back to in-memory cache |
+| `REDIS_MODE` | | `local` | `local` / `cloud` / `memory` | The only switch for the cache backend. `memory` = no Redis. Any other value stops the server at startup. If Redis is unreachable the API falls back to in-memory cache |
 | `REDIS_LOCAL_URI` / `REDIS_CLOUD_URI` | per mode | `redis://127.0.0.1:6379` / empty | per mode | |
 | `CACHE_DEFAULT_TTL` | | `300` | | Seconds |
 | `PLATFORM_FEE_PERCENT` | | `20` | | Share kept by the platform on each payment |
@@ -105,7 +105,6 @@ A real environment variable always wins over `.env` (dotenv never overrides), so
 | `CLOUDINARY_*` | optional | empty | set | Empty → image uploads fail |
 | `PAYOS_*` | optional | empty | set | Empty → the "Pay" step cannot create a QR link. Use sandbox keys locally |
 | `CHATBOT_GPT_N8N_API` | optional | empty | set to enable | Empty → AI chat is off |
-| `DATABASE_NAME` | | `fitlink_db` | | Not used by the live connection (`src/config/database.js`) — the database name comes from the URI path |
 
 ### 5. Scripts
 
