@@ -1,6 +1,6 @@
 import express from "express";
 import "express-async-errors";
-import { env } from "~/config/environment";
+import { env, checkEnv } from "~/config/environment";
 import { errorHandlingMiddleware } from "~/middlewares/errorHandlingMiddleware";
 import { connectDB } from "~/config/database";
 import searchRoutes from "./routes/searchRoutes.js";
@@ -127,6 +127,7 @@ const START_SERVER = () => {
 };
 
 (async () => {
+  checkEnv();
   try {
     console.log("1. Connecting to MongoDB Cloud Atlas");
     await connectDB();

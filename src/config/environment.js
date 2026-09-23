@@ -31,3 +31,36 @@ export const env = {
   REDIS_URI: process.env.REDIS_URI || '',
   CACHE_DEFAULT_TTL: Number(process.env.CACHE_DEFAULT_TTL) || 300
 }
+
+// Kiểm tra cấu hình lúc server khởi động (gọi trong server.js, KHÔNG chạy lúc import
+// để test và script seed không bị chặn oan).
+// - Thiếu biến bắt buộc → in rõ thiếu biến nào rồi dừng, thay vì chạy âm thầm với giá trị sai.
+// - Thiếu key dịch vụ bên thứ ba → chỉ cảnh báo tính năng nào đang tắt.
+// - Cấu hình nguy hiểm (https nhưng cookie không Secure, dev mode trên https) → cảnh báo.
+// Không bao giờ in giá trị secret.
+export const checkEnv = () => {
+  const required = ['MONGODB_URI', 'APP_PORT', 'CLIENT_URL', 'ACCESS_TOKEN_SECRET', 'REFRESH_TOKEN_SECRET']
+  const missing = required.filter((key) => !process.env[key])
+  if (missing.length) {
+    console.error(`❌ [ENV] Thiếu biến môi trường bắt buộc: ${missing.join(', ')} — xem .env.example`)
+    process.exit(1)
+  }
+
+  const optionalFeatures = {
+    'Email (đăng ký, quên mật khẩu)': ['EMAIL_USER', 'EMAIL_PASS'],
+    'Cloudinary (upload ảnh)': ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'],
+    'PayOS (thanh toán)': ['PAYOS_CLIENT_ID', 'PAYOS_API_KEY', 'PAYOS_CHECKSUM_KEY'],
+    'Google login': ['GG_CLIENT_ID'],
+    'AI chat (n8n)': ['CHATBOT_GPT_N8N_API']
+  }
+  const disabled = Object.entries(optionalFeatures)
+    .filter(([, keys]) => keys.some((key) => !process.env[key]))
+    .map(([feature]) => feature)
+
+  console.log(`⚙️  [ENV] BUILD_MODE=${env.BUILD_MODE} · APP_PORT=${env.APP_PORT} · REDIS_MODE=${env.REDIS_MODE} · CLIENT_URL=${env.CLIENT_URL}`)
+  if (disabled.length) console.warn(`⚠️  [ENV] Tắt do thiếu key: ${disabled.join(', ')}`)
+  if (env.CLIENT_URL.startsWith('https://')) {
+    if (!env.IS_SERCURE_COOKIE) console.warn('⚠️  [ENV] CLIENT_URL là https nhưng IS_SERCURE_COOKIE không phải "true" → cookie đăng nhập thiếu cờ Secure')
+    if (env.BUILD_MODE === 'dev') console.warn('⚠️  [ENV] CLIENT_URL là https nhưng BUILD_MODE=dev → lỗi trả stack trace cho client')
+  }
+}
