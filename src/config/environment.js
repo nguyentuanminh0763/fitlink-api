@@ -38,7 +38,7 @@ env.CORS_ORIGINS = [env.CLIENT_URL, ...(env.BUILD_MODE === 'dev' ? DEV_ORIGINS :
 // Kiểm tra cấu hình lúc server khởi động (gọi trong server.js, KHÔNG chạy lúc import
 // để test và script seed không bị chặn oan).
 // - Thiếu biến bắt buộc → in rõ thiếu biến nào rồi dừng, thay vì chạy âm thầm với giá trị sai.
-// - Thiếu key dịch vụ bên thứ ba → chỉ cảnh báo tính năng nào đang tắt.
+// - Thiếu key dịch vụ bên thứ ba → chỉ cảnh báo tính năng nào chưa cấu hình (server vẫn chạy).
 // - Cấu hình nguy hiểm (https nhưng cookie không Secure, dev mode trên https) → cảnh báo.
 // Không bao giờ in giá trị secret.
 export const checkEnv = () => {
@@ -65,7 +65,7 @@ export const checkEnv = () => {
     .map(([feature]) => feature)
 
   console.log(`⚙️  [ENV] BUILD_MODE=${env.BUILD_MODE} · APP_PORT=${env.APP_PORT} · REDIS_MODE=${env.REDIS_MODE} · CLIENT_URL=${env.CLIENT_URL}`)
-  if (disabled.length) console.warn(`⚠️  [ENV] Tắt do thiếu key: ${disabled.join(', ')}`)
+  if (disabled.length) console.warn(`⚠️  [ENV] Chưa cấu hình, sẽ báo lỗi khi dùng: ${disabled.join(', ')}`)
   if (env.REDIS_MODE === 'cloud' && !env.REDIS_CLOUD_URI) console.warn('⚠️  [ENV] REDIS_MODE=cloud nhưng REDIS_CLOUD_URI trống → dùng cache in-memory')
   if (env.CLIENT_URL.startsWith('https://')) {
     if (!env.IS_SERCURE_COOKIE) console.warn('⚠️  [ENV] CLIENT_URL là https nhưng IS_SERCURE_COOKIE không phải "true" → cookie đăng nhập thiếu cờ Secure')

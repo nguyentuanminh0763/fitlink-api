@@ -1,6 +1,6 @@
 // src/controllers/aiController.js
 import { StatusCodes } from "http-status-codes";
-import { chatWithAI } from "../services/aiService.js";
+import { chatWithAI, AI_UNAVAILABLE_REPLY } from "../services/aiService.js";
 
 /**
  * POST /api/ai/chat
@@ -46,10 +46,10 @@ export const chatAI = async (req, res) => {
       reply: aiReply.content,
     });
   } catch (err) {
+    // Chi tiết lỗi chỉ ghi log server, không trả err.message cho client
     console.error("❌ AI chat error:", err);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: "AI chat failed",
-      error: err.message,
+      message: AI_UNAVAILABLE_REPLY,
     });
   }
 };

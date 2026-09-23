@@ -2,6 +2,10 @@ import { env } from '~/config/environment'
 
 const CHATBOT_GPT_N8N_API = env.CHATBOT_GPT_N8N_API || "";
 
+// Câu trả cho người dùng khi AI không dùng được — chi tiết kỹ thuật chỉ ghi vào log server,
+// không bao giờ hiện tên biến, URL hay lỗi n8n trong khung chat.
+export const AI_UNAVAILABLE_REPLY = "Xin lỗi, trợ lý AI đang tạm thời không phản hồi. Bạn vui lòng thử lại sau nhé.";
+
 const normalizeText = (str = "") => {
   return str
     .toLowerCase()
@@ -41,7 +45,8 @@ export const chatWithAI = async (messages) => {
 
   // --- 2. Gửi qua n8n webhook ---
   if (!CHATBOT_GPT_N8N_API) {
-    return { role: "assistant", content: "❌ Thiếu biến môi trường CHATBOT_GPT_N8N_API" };
+    console.warn("⚠️ [AI] CHATBOT_GPT_N8N_API chưa cấu hình — không gọi được n8n");
+    return { role: "assistant", content: AI_UNAVAILABLE_REPLY };
   }
 
   try {
@@ -71,15 +76,14 @@ export const chatWithAI = async (messages) => {
       (Array.isArray(data) ? (data[0]?.json?.answer || data[0]?.json?.content) : "") ||
       "";
 
-    return {
-      role: "assistant",
-      content: answer || "⚠️ n8n đã phản hồi nhưng không thấy field answer/content.",
-    };
+    if (!answer) {
+      console.warn("⚠️ [AI] n8n phản hồi nhưng không có field output/content. Keys:", Object.keys(data || {}));
+      return { role: "assistant", content: AI_UNAVAILABLE_REPLY };
+    }
+
+    return { role: "assistant", content: answer };
   } catch (err) {
     console.error("❌ Call n8n failed:", err);
-    return {
-      role: "assistant",
-      content: "❌ Lỗi gọi n8n webhook. Kiểm tra URL / CORS / network / response format.",
-    };
+    return { role: "assistant", content: AI_UNAVAILABLE_REPLY };
   }
 };
