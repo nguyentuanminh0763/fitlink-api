@@ -121,12 +121,13 @@ const START_SERVER = () => {
 (async () => {
   checkEnv();
   try {
-    console.log("1. Connecting to MongoDB Cloud Atlas");
+    console.log("1. Connecting to MongoDB");
     await connectDB();
-    console.log("2. Connected to MongoDB Cloud Atlas");
+    console.log("2. Connected to MongoDB");
     START_SERVER();
   } catch (error) {
     console.error(error);
-    process.exit(0);
+    // Exit code 1 = khởi động thất bại (0 sẽ bị hiểu là thành công)
+    process.exit(1);
   }
 })();
