@@ -1,0 +1,43 @@
+# Hạ tầng cho môi trường dev: MongoDB (replica set) + Redis.
+# API chạy trên máy bằng `npm run dev`, không chạy trong compose này.
+#
+#   docker compose up -d      # bật
+#   docker compose down       # tắt, giữ dữ liệu
+#   docker compose down -v    # tắt và XOÁ dữ liệu
+#
+# Vì sao Mongo phải là replica set: luồng thanh toán dùng session.withTransaction().
+# Mongo standalone từ chối với lỗi
+#   "Transaction numbers are only allowed on a replica set member or mongos"
+
+services:
+  mongo:
+    image: mongo:8
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Lần đầu chạy: rs.status() lỗi → rs.initiate(). Các lần sau: trả về ok.
+      test: echo "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok }" | mongosh --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  mongo-data:
+  redis-data:
