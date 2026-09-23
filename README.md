@@ -1,34 +1,38 @@
 # Fit-Link Platform — Backend Service
 
 > RESTful API & Real-time WebSocket Server for Fit-Link, a fitness marketplace connecting students with certified personal trainers (PTs).
+>
+> Frontend: [fitlink-portal](https://github.com/nguyentuanminh0763/fitlink-portal)
 
 ---
 
 ## 🌟 Tech Stack & Architecture
 
-- **Runtime & Framework:** Node.js (>=18.x), Express.js 4, Babel (ESModules transpilation)
-- **Database & ODM:** MongoDB Atlas with Mongoose 8 (compound indexing, schema validations)
+- **Runtime & Framework:** Node.js 20, Express.js 4, Babel (ESModules transpilation, `~/` path alias)
+- **Database & ODM:** MongoDB (replica set, required for multi-document transactions) with Mongoose 8
+- **Cache:** Redis 7 (ioredis) with automatic in-memory fallback when Redis is unreachable
 - **Real-Time Layer:** Socket.IO 4 (bidirectional chat, instant notification feeds)
-- **Authentication:** JWT stored in `httpOnly` secure cookies + Google OAuth 2.0 (`google-auth-library`)
-- **Payment Gateway:** PayOS SDK integration (QR code checkout, webhook transaction verification)
+- **Authentication:** JWT stored in `httpOnly` cookies + Google OAuth 2.0 (`google-auth-library`)
+- **Payment Gateway:** PayOS SDK (QR code checkout, server-side payment verification)
 - **File Storage:** Cloudinary SDK with Multer middleware
-- **Email Service:** Nodemailer with Gmail SMTP & EJS templates
-- **AI Consultation:** Express webhook proxying to n8n workflow connected to Google Docs (Knowledge Base) and OpenAI GPT-4o
+- **Email Service:** Nodemailer with Gmail SMTP
+- **AI Consultation:** Express webhook proxying to an n8n workflow
 
 ---
 
 ## 📁 Directory Structure
 
 ```
-backend/src/
-├── config/             # Environment variables & MongoDB connection
+src/
+├── config/             # Environment variables, MongoDB, Redis, Cloudinary
 ├── controllers/        # Request handlers (auth, pt, booking, payment, ai, ...)
 ├── domain/             # System enums (Roles, BookingStatus, SessionStatus)
-├── middlewares/        # Authentication guard, error handling, file upload
+├── middlewares/        # Authentication guard, error handling, file upload, cache
 ├── models/             # Mongoose data models & schemas
 ├── providers/          # Third-party integrations (PayOS, Cloudinary, Mailer)
 ├── routes/             # RESTful route endpoints (/api/*)
-├── services/           # Core business logic (notifications, email, AI)
+├── seeds/              # Demo data (`npm run seed`)
+├── services/           # Core business logic (notifications, cache, booking)
 ├── sockets/            # Socket.IO connection & event handlers
 ├── utils/              # Token generation, formatters, pagination helpers
 ├── validations/        # Joi schema validation rules
@@ -40,112 +44,101 @@ backend/src/
 ## 🚀 Getting Started
 
 ### 1. Prerequisites
-- Node.js >= 18.x
-- npm >= 9.x
-- MongoDB Atlas cluster URI
+- **Node.js 20** and npm 10
+- **Docker Desktop** (runs MongoDB as a replica set + Redis — no Atlas account needed)
 
-### 2. Installation
+### 2. Quick start
 ```bash
-cd backend
-npm install
+git clone https://github.com/nguyentuanminh0763/fitlink-api.git
+cd fitlink-api
+
+docker compose up -d     # MongoDB replica set (rs0) + Redis
+cp .env.example .env     # the defaults work as-is for local development
+npm ci                   # installs the exact versions from package-lock.json
+npm run seed             # demo data (see accounts below)
+npm run dev              # API on http://localhost:3000 — check http://localhost:3000/health
 ```
 
-### 3. Environment Configuration
-Create a `.env` file in the `backend/` root:
-```env
-# Server
-APP_HOST=localhost
-APP_PORT=8017
-BUILD_MODE=dev
-CLIENT_URL=http://localhost:5173
+> PowerShell: use `Copy-Item .env.example .env` instead of `cp`.
+> The first `npm run dev` can take a minute or two: `babel-node` compiles on the fly.
 
-# Database
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net
-DATABASE_NAME=fitlink_db
+Then start the frontend ([fitlink-portal](https://github.com/nguyentuanminh0763/fitlink-portal)) — it runs on `http://localhost:5173` and proxies `/api` and `/socket.io` to port 3000.
 
-# Security & JWT
-ACCESS_TOKEN_SECRET=your_super_secret_access_key
-REFRESH_TOKEN_SECRET=your_super_secret_refresh_key
-IS_SERCURE_COOKIE=false
-COOKIE_SAMESITE=lax
+### 3. Demo accounts
+Created by `npm run seed`. Password for all: `123456`.
 
-# Google OAuth
-GG_CLIENT_ID=your_google_client_id
-GG_CLIENT_SECRET=your_google_client_secret
+| Role | Email |
+|---|---|
+| Admin | `admin@fitlink.vn` |
+| PT | `pt.hung@fitlink.vn` (+ 99 more PTs) |
+| Student | `student.kiet@fitlink.vn`, `student.trang@fitlink.vn` |
 
-# PayOS Payment
-PAYOS_CLIENT_ID=your_payos_client_id
-PAYOS_API_KEY=your_payos_api_key
-PAYOS_CHECKSUM_KEY=your_payos_checksum_key
+> ⚠️ `npm run seed` **deletes all users, PT profiles, wallets and packages** before inserting. Only run it against a local database.
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+### 4. Environment variables
+Every variable is documented in [`.env.example`](.env.example). The core ones have working local defaults; third-party keys can stay empty — the server still starts, only that feature fails:
 
-# Nodemailer
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password
-EMAIL_FROM=FitLink <no-reply@fitlink.vn>
+| Left empty | What stops working |
+|---|---|
+| `EMAIL_USER` / `EMAIL_PASS` | Sign-up (email verification) and forgot-password return 500 — use the demo accounts |
+| `CLOUDINARY_*` | Image uploads (avatars, PT profile images) |
+| `PAYOS_*` | The "Pay" step cannot create a QR payment link (use PayOS sandbox keys) |
+| `CHATBOT_GPT_N8N_API` | AI chat page |
 
-# AI Integration
-CHATBOT_GPT_N8N_API=your_n8n_webhook_url
-PLATFORM_FEE_PERCENT=20
-```
+### 5. Scripts
 
-### 4. Running the Application
+| Command | Description |
+|---|---|
+| `npm run dev` | Nodemon + babel-node with hot reload |
+| `npm run seed` | Reset and insert demo data |
+| `npm test` | All Vitest suites — `transaction.test.js` needs `docker compose up -d` (replica set on 27017) |
+| `npm run build` | Babel-compile to `build/` |
+| `npm run production` | Build + start the compiled server |
+| `npm run lint` | ESLint |
+
+### 6. Troubleshooting
+
+| Error | Cause → fix |
+|---|---|
+| `Invalid scheme, expected connection string to start with "mongodb://"` | No `.env` or empty `MONGODB_URI` → `cp .env.example .env` |
+| `Transaction numbers are only allowed on a replica set member or mongos` | MongoDB is not a replica set → use `docker compose up -d` from this repo |
+| Pages load but every POST returns `500` `CORS blocked` | `CLIENT_URL` doesn't match the frontend origin (browsers send `Origin` on POST, not on same-origin GET) |
+| `Cannot find module '~/...'` | Started with `node src/server.js` → the `~/` alias only works through Babel; use `npm run dev` |
+| Data "disappears" | `MONGODB_URI` without `/fitlink_db` → Mongoose silently uses the `test` database |
+
+### 7. Production image
 ```bash
-# Development (with hot-reload via nodemon & babel-node)
-npm run dev
-
-# Run Automated Vitest Test Suite (Unit & Integration tests)
-npm test
-
-# Single test run (CI mode)
-npm run test:run
-
-# Build for production (Babel transpilation to build/)
-npm run build
-
-# Start production server
-npm run production
+docker build -t fitlink-api .
 ```
-
-### 5. Running with Docker Compose (Replica Set & Redis)
-From the project root (`D:\2025\PROJECT_WDP`):
-```bash
-docker compose up -d
-```
-This spins up:
-- **MongoDB** with Replica Set `rs0` enabled (supporting ACID transactions on local).
-- **Redis 7** for fast Cache-Aside data retrieval.
-- **FitLink Backend** container.
+Multi-stage build, runs as non-root `node` under `dumb-init`, exposes port 3000 with a `/health` HEALTHCHECK. In production set at least `BUILD_MODE=production`, `CLIENT_URL` (the public frontend URL) and a `MONGODB_URI` ending in `/fitlink_db`.
 
 ---
 
 ## 🧪 Testing Suite (Vitest)
 
-The backend includes automated tests verifying financial calculations and transaction integrity:
-- `src/__tests__/pricing.test.js`: Validates package pricing logic, percentage platform fee deductions, and edge cases.
-- `src/__tests__/transaction.test.js`: Validates MongoDB Multi-Document ACID transaction rollback on failure, and confirms idempotency of `creditPTWalletIdempotent` (guaranteeing wallet balances cannot be double-credited upon retry).
+- `src/__tests__/pricing.test.js`: package pricing logic, platform fee deductions, edge cases.
+- `src/__tests__/transaction.test.js`: MongoDB multi-document transaction rollback on failure, and idempotency of `creditPTWalletIdempotent` (a wallet cannot be credited twice for the same payment). Uses the local replica set on port 27017.
+- `src/__tests__/cacheInvalidation.test.js`: cache eviction by PT id **and** slug.
 
 ---
 
-## 🔄 CI/CD Pipeline (Azure DevOps)
+## 🔄 CI Pipeline (Azure DevOps)
 
-Automated continuous integration is configured in `azure-pipelines.yml`:
-- Runs on a **Self-Hosted Windows Agent** (`D:\agent`, pool `Default`).
-- Automatically triggers on push and pull-requests to `dev` and `main`.
-- Executes dependency installation (`npm install`), Vitest tests (`npm run test:run`), Babel build (`npm run build`), and Docker dry-run build (`docker build`).
-- Typical execution time: **~1 minute 07 seconds**.
+Configured in `azure-pipelines.yml`, triggered on pushes to `dev` and `main`:
+1. Node.js 20 setup
+2. `npm ci`
+3. `npx vitest run src/__tests__/pricing.test.js`
+4. `npm run build`
+5. Docker build and push to Azure Container Registry (tags: build ID and `latest`)
+
+Deployment to Azure Container Apps is a manual step — the pipeline does not deploy.
 
 ---
 
 ## 🛡️ Security & Integrity Hardening
 
-1. **Authentication:** Secure `httpOnly` cookies (`token`) prevent XSS token theft.
-2. **WebSocket Security:** Socket.IO handshakes strictly authenticate the user's JWT from `httpOnly` cookies (`chatSocket.js`), preventing room eavesdropping and identity spoofing.
-3. **Idempotency & Concurrency:** PT wallet credits use atomic MongoDB queries (`$ne` on `processedTransactions`), guaranteeing single execution even under network retries.
-4. **Data Integrity:** Compound MongoDB indexes on `(pt: 1, startTime: 1)` in `Slot.js` and `(slot: 1)` in `Session.js` prevent double-booking at the database level.
-5. **Price & Transaction Ownership:** Server calculates payment totals strictly using `calcBookingPricing()`; transactions enforce user ownership (`trans.student === req.user._id`).
-
+1. **Authentication:** `httpOnly` cookies (`token`) keep the JWT out of reach of JavaScript.
+2. **WebSocket Security:** Socket.IO handshakes authenticate the user's JWT from the `httpOnly` cookie (`chatSocket.js`), preventing room eavesdropping and identity spoofing.
+3. **Idempotent wallet credits:** `creditPTWalletIdempotent` runs inside `session.withTransaction()` and relies on a unique index on `(refId, refType)` in `PTWalletTransaction` — refreshing the payment result page credits the PT once.
+4. **Data Integrity:** Unique indexes on `(pt, startTime)` in `Slot.js` and `(slot)` in `Session.js` prevent double-booking at the database level.
+5. **Price & Transaction Ownership:** The server computes payment totals with `calcBookingPricing()`; pay/confirm endpoints check `trans.student === req.user._id`.
