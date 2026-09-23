@@ -248,7 +248,8 @@ const createPaymentLink = async (req, res) => {
 
         // PayOS yêu cầu Number cho orderCode
         const orderCode = Number(String(Date.now()).slice(-10));
-        const CLIENT_URL = (process.env.CLIENT_URL || (env && env.CLIENT_URL) || 'http://localhost:5173').replace(/\/$/, '');
+        // Đã bỏ "/" cuối và được checkEnv() đảm bảo có giá trị lúc khởi động — không fallback về localhost
+        const CLIENT_URL = env.CLIENT_URL;
 
         const name = (trans.package?.name ?? '').toString().trim() || 'Gói tập PT';
         const description = `${name}`; // luôn là string
