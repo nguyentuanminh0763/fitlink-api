@@ -1,15 +1,26 @@
 # Azure DevOps CI/CD Pipeline for FitLink API
 trigger:
+  # Agent tự host chỉ chạy 1 job mỗi lúc: push liên tiếp thì gom thành 1 lần chạy cho bản mới nhất
+  batch: true
   branches:
     include:
       - main
       - dev
+  # Push chỉ sửa tài liệu thì không chạy CI (có lẫn file code thì vẫn chạy)
+  paths:
+    exclude:
+      - '*.md'
+      - '**/*.md'
 
 pr:
   branches:
     include:
       - main
       - dev
+  paths:
+    exclude:
+      - '*.md'
+      - '**/*.md'
 
 pool:
   name: 'Default'
