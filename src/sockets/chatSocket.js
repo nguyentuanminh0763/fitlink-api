@@ -18,8 +18,7 @@ export const initChatSocket = (server) => {
   const io = new Server(server, {
     cors: {
       origin: (origin, callback) => {
-        const allowed = [process.env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080'];
-        if (!origin || allowed.includes(origin)) {
+        if (!origin || env.CORS_ORIGINS.includes(origin)) {
           return callback(null, true);
         }
         return callback(new Error(`Socket CORS blocked: ${origin}`));

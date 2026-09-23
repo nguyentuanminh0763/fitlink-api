@@ -51,18 +51,10 @@ const START_SERVER = () => {
   app.set("trust proxy", 1); // nếu deploy lên Heroku hoặc Vercel thì mở dòng này
   app.use(express.json());
   app.use(morgan("dev"));
-  const allowedOrigins = [
-    env.CLIENT_URL,
-    "http://localhost:5173",
-    "http://localhost:8080",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8080",
-  ].filter(Boolean);
-
   app.use(
     cors({
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || env.CORS_ORIGINS.includes(origin)) {
           return callback(null, true);
         }
         return callback(new Error(`CORS blocked for origin: ${origin}`));

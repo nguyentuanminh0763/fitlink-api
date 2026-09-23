@@ -8,7 +8,8 @@ export const env = {
   AUTHOR: process.env.AUTHOR,
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
-  CLIENT_URL: process.env.CLIENT_URL,
+  // Bỏ "/" cuối để so khớp CORS và ghép URL (PayOS, email) luôn ổn định
+  CLIENT_URL: process.env.CLIENT_URL?.replace(/\/$/, ''),
   PAYOS_CLIENT_ID: process.env.PAYOS_CLIENT_ID,
   PAYOS_API_KEY: process.env.PAYOS_API_KEY,
   PAYOS_CHECKSUM_KEY: process.env.PAYOS_CHECKSUM_KEY,
@@ -31,6 +32,12 @@ export const env = {
   REDIS_URI: process.env.REDIS_URI || '',
   CACHE_DEFAULT_TTL: Number(process.env.CACHE_DEFAULT_TTL) || 300
 }
+
+// Origin được phép gọi API — Express (server.js) và Socket.IO (chatSocket.js) dùng chung.
+// Production chỉ nhận CLIENT_URL; các cổng localhost chỉ mở khi BUILD_MODE=dev
+// (5173 = Vite dev, 8080 = nginx trong docker compose).
+const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:8080', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080']
+env.CORS_ORIGINS = [env.CLIENT_URL, ...(env.BUILD_MODE === 'dev' ? DEV_ORIGINS : [])].filter(Boolean)
 
 // Kiểm tra cấu hình lúc server khởi động (gọi trong server.js, KHÔNG chạy lúc import
 // để test và script seed không bị chặn oan).
