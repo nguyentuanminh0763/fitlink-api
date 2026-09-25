@@ -109,6 +109,12 @@ const START_SERVER = () => {
 
   app.use("/api/payouts", payoutRoutes);
 
+  // /api/... không khớp route nào → 404 JSON (mặc định Express trả trang HTML "Cannot GET ...").
+  // Phải đứng SAU mọi route /api và TRƯỚC errorHandlingMiddleware.
+  app.use("/api", (req, res) => {
+    res.status(404).json({ statusCode: 404, message: `Không tìm thấy API: ${req.method} ${req.originalUrl}` });
+  });
+
   app.use(errorHandlingMiddleware);
 
   // 🆕 Thêm dòng này sau khi app config xong
