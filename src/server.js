@@ -1,7 +1,7 @@
 import express from "express";
 import "express-async-errors";
 import { env, checkEnv } from "~/config/environment";
-import { errorHandlingMiddleware } from "~/middlewares/errorHandlingMiddleware";
+import { errorHandlingMiddleware, hideServerErrorDetails } from "~/middlewares/errorHandlingMiddleware";
 import { connectDB } from "~/config/database";
 import searchRoutes from "./routes/searchRoutes.js";
 import studentMaterialRoutes from "./routes/studentMaterialRoutes.js";
@@ -49,6 +49,7 @@ const START_SERVER = () => {
   const app = express();
   const server = http.createServer(app); // ✅ tạo HTTP server trước
   app.set("trust proxy", 1); // nếu deploy lên Heroku hoặc Vercel thì mở dòng này
+  app.use(hideServerErrorDetails); // phải đứng trước mọi route để bọc được mọi res.json
   app.use(express.json());
   app.use(morgan("dev"));
   app.use(
