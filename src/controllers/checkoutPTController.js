@@ -252,7 +252,10 @@ const createPaymentLink = async (req, res) => {
         const CLIENT_URL = env.CLIENT_URL;
 
         const name = (trans.package?.name ?? '').toString().trim() || 'Gói tập PT';
-        const description = `${name}`; // luôn là string
+        // PayOS giới hạn description tối đa 25 ký tự (dài hơn → "Mô tả tối đa 25 kí tự", không tạo được link).
+        // Tên gói thường 30–46 ký tự nên không dùng làm mô tả; tên đầy đủ đã nằm trong items bên dưới.
+        // orderCode tối đa 10 chữ số → "FitLink " + 10 = 18 ký tự.
+        const description = `FitLink ${orderCode}`;
 
         // items phải là array và mỗi item có name/quantity/price number
         const items = [{
