@@ -1,30 +1,11 @@
 // src/routes/ptMaterialRoutes.js
 import express from 'express'
-import multer from 'multer'
-import fs from 'fs'
-import path from 'path'
 
 import { authMiddleware } from '~/middlewares/authMiddleware'
+import { materialUpload } from '~/middlewares/upload'
 import { ptMaterialController } from '~/controllers/ptMaterialController'
 
 const router = express.Router()
-
-/* ------------ Multer config để lưu file uploads/materials ------------ */
-
-const uploadDir = 'uploads/materials'
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const name = `${Date.now()}_${file.originalname.replace(/\s+/g, '_')}`
-    cb(null, name)
-  }
-})
-
-const upload = multer({ storage })
 
 /* --------------------------- ROUTES --------------------------- */
 /**
@@ -37,7 +18,7 @@ router.post(
   '/materials/upload',
   authMiddleware.authenTokenCookie,
   authMiddleware.isPT,
-  upload.single('file'),
+  materialUpload.single('file'),
   ptMaterialController.uploadFile
 )
 

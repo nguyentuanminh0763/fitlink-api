@@ -2,7 +2,7 @@ import express from 'express'
 import { authMiddleware } from '~/middlewares/authMiddleware'
 import { ptProfileController } from '~/controllers/ptProfileController'
 import { cacheResponse } from '~/middlewares/cacheMiddleware'
-import multer from 'multer'
+import { imageUpload } from '~/middlewares/upload'
 import {
   ptSubmitReview,
   ptListMyRequests,
@@ -11,7 +11,6 @@ import {
 } from '~/controllers/ptApprovalController.js'
 
 const router = express.Router()
-const upload = multer({ storage: multer.memoryStorage() })
 
 // PT tự xem/cập nhật hồ sơ mình
 router.get(
@@ -36,7 +35,7 @@ router.delete(
 router.post(
   '/upload-cover',
   authMiddleware.authenTokenCookie,
-  upload.single('coverImage'),
+  imageUpload.single('coverImage'),
   ptProfileController.uploadCoverImage
 )
 
