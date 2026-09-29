@@ -39,8 +39,8 @@ RUN npm install --omit=dev --no-audit && npm cache clean --force
 # Copy compiled production artifacts from builder stage
 COPY --from=builder /app/build ./build
 
-# Create uploads directory and set permissions to non-root 'node' user
-RUN mkdir -p uploads && chown -R node:node /app
+# Set permissions to non-root 'node' user (file upload lên Cloudinary, không ghi ổ đĩa container)
+RUN chown -R node:node /app
 
 # Senior Security Standard: Drop root privileges, run as 'node' user
 USER node

@@ -102,9 +102,6 @@ const START_SERVER = () => {
   app.use("/api/pt", ptMaterialRoutes);
   app.use("/api/pt", ptProfileRoutes);
   app.use("/api/student", studentMaterialRoutes);
-
-  // cho FE truy cập file đã upload
-  app.use("/uploads", express.static("uploads"));
   app.use("/api/feedbacks", feedbackRoutes);
 
   app.use("/api/payouts", payoutRoutes);

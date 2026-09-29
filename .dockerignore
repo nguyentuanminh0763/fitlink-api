@@ -8,7 +8,5 @@ yarn-error.log*
 .env.*
 !.env.example
 build
-uploads/*
-!uploads/.gitkeep
 .DS_Store
 *.md

@@ -25,3 +25,6 @@ yarn-error.log*
 # chỉ chừa file mẫu. Liệt kê từng tên một sẽ luôn sót một biến thể nào đó.
 .env*
 !.env.example
+
+# File upload đi thẳng lên Cloudinary — thư mục uploads/ không bao giờ được commit lại
+uploads/
