@@ -295,10 +295,10 @@ const logout = (req, res) => {
 }
 
 const forgotPassword = async (req, res) => {
-  const { phone } = req.body
+  const { email, phone } = req.body
 
   try {
-    const user = await User.findOne({ phone })
+    const user = await User.findOne(email ? { email: email.trim().toLowerCase() } : { phone })
 
     if (!user) {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' })

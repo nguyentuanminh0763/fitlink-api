@@ -169,17 +169,27 @@ const changePassword = async (req, res, next) => {
 }
 
 const forgotPassword = async (req, res, next) => {
+  // Email là cách chính; phone giữ lại để portal cũ (gửi phone) không vỡ
   const correctCondition = Joi.object({
+    email: Joi.string()
+      .trim()
+      .email()
+      .messages({
+        'string.email': 'Email không đúng định dạng'
+      }),
     phone: Joi.string()
       .trim()
       .strict()
       .pattern(/^0[0-9]{9}$/)
-      .required()
       .messages({
-        'string.pattern.base': 'Số điện thoại không đúng định dạng',
-        'any.required': 'Số điện thoại là bắt buộc'
+        'string.pattern.base': 'Số điện thoại không đúng định dạng'
       })
   })
+    .xor('email', 'phone')
+    .messages({
+      'object.missing': 'Email là bắt buộc',
+      'object.xor': 'Chỉ nhập email'
+    })
 
   try {
     await correctCondition.validateAsync(req.body, { abortEarly: false })
