@@ -118,16 +118,16 @@ const START_SERVER = () => {
   initChatSocket(server)
 
   server.listen(env.APP_PORT, env.APP_HOST, () => {
-    console.log(`✅ Server running at http://${env.APP_HOST}:${env.APP_PORT}/`)
+    console.info(`✅ Server running at http://${env.APP_HOST}:${env.APP_PORT}/`)
   })
 };
 
 (async () => {
   checkEnv()
   try {
-    console.log('1. Connecting to MongoDB')
+    console.info('1. Connecting to MongoDB')
     await connectDB()
-    console.log('2. Connected to MongoDB')
+    console.info('2. Connected to MongoDB')
     START_SERVER()
   } catch (error) {
     console.error(error)

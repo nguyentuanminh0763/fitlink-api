@@ -51,7 +51,7 @@ if (targetUri) {
     redisClient.connect()
       .then(() => {
         isRedisReady = true
-        console.log(`⚡ [CACHE] Connected to ${modeDescription} successfully.`)
+        console.info(`⚡ [CACHE] Connected to ${modeDescription} successfully.`)
       })
       .catch((err) => {
         isRedisReady = false
@@ -70,7 +70,7 @@ if (targetUri) {
     console.warn(`ℹ️ [CACHE] Could not initialize ${modeDescription} client. Using Server In-Memory Cache.`)
   }
 } else {
-  console.log(`ℹ️ [CACHE] Operating with ${modeDescription} (No external Redis).`)
+  console.info(`ℹ️ [CACHE] Operating with ${modeDescription} (No external Redis).`)
 }
 
 export const getRedisClient = () => redisClient

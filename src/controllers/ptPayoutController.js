@@ -89,9 +89,6 @@ export async function getMyWallet(req, res) {
       })
     }
 
-    console.log(wallet)
-
-
     return res.json({
       pt: wallet.pt,
       available: wallet.available,

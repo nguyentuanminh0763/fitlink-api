@@ -278,7 +278,7 @@ const createPaymentLink = async (req, res) => {
     }
 
     // 3) Log chẩn đoán chi tiết
-    console.log('[PayOS] Will createPaymentLink with:', {
+    console.info('[PayOS] Will createPaymentLink with:', {
       orderCode: paymentData.orderCode,
       amount: paymentData.amount,
       description: paymentData.description,
@@ -455,7 +455,7 @@ const confirmPayment = async (req, res) => {
       if (trans.booking) {
 
         const gen = await createSlotsAndSessionsForBooking(trans.booking, existedSP._id)
-        console.log('[booking] generated:', gen)
+        console.info('[booking] generated:', gen)
       } else {
         console.warn('[booking] Transaction has no booking link — skip slot/session generation')
       }
@@ -473,7 +473,7 @@ const confirmPayment = async (req, res) => {
     })
 
     // (tuỳ chọn) log để theo dõi
-    console.log('[wallet credit]', {
+    console.info('[wallet credit]', {
       duplicated: creditResult.duplicated,
       txnId: creditResult.walletTxn?._id
     })

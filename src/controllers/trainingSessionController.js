@@ -32,10 +32,6 @@ export const getTrainingSessions = async (req, res) => {
 
     const filter = { ...filterBase, ...timeFilter }
 
-    // console.log('📥 Query filter:', filter)
-    if (!(req.query.role === 'student' && req.query.packageId)) {
-      console.log('📥 Query filter:', filter)
-    }
     const sessions = await Session.find(filter)
       .populate('student', 'name email')
       .populate('pt', 'name email')

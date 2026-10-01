@@ -26,8 +26,6 @@ export const chatWithAI = async (messages) => {
   const rawQuestion = last?.content || ''
   const q = normalizeText(rawQuestion)
 
-  console.log('🤖 AI received question:', rawQuestion)
-
   // --- 1. Chào hỏi / xã giao ---
   if (
     q === 'hi' ||

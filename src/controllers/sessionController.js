@@ -1,6 +1,5 @@
 import Session from '../models/Session.js'
 import Notification from '../models/Notification.js'
-import PTProfile from '../models/PTProfile.js'
 
 /**
  * @desc Update session status or PT note
@@ -89,17 +88,6 @@ export const updateSessionStatus = async (req, res) => {
       if (totalSessions > 0 && completedCount >= totalSessions) {
         session.studentPackage.status = 'completed'
         await session.studentPackage.save()
-
-        // 🟢 Tìm PTProfile theo user
-        const ptProfile = await PTProfile.findOne({
-          user: session.pt._id
-        }).select('_id')
-
-        console.log('✅ DEBUG Feedback Meta:', {
-          ptId: session.pt._id,
-          ptProfileId: ptProfile?._id,
-          studentPackageId: session.studentPackage._id
-        })
 
         await Notification.create({
           user: session.student._id,

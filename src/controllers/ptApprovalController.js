@@ -64,17 +64,17 @@ export const ptSubmitReview = async (req, res) => {
 
     //--- Notify admins by notification + email
 
-    console.log('✅ Đã tạo yêu cầu duyệt PT:', doc._id)
+    console.info('✅ Đã tạo yêu cầu duyệt PT:', doc._id)
 
     // 📬 Gửi notification + mail cho admin
     const admins = await User.find({ role: 'admin' })
-    console.log(
+    console.info(
       '🧩 Admins tìm thấy:',
       admins.map((a) => a.email)
     )
 
     for (const admin of admins) {
-      console.log(`📨 Gửi thông báo & mail cho admin: ${admin.email}`)
+      console.info(`📨 Gửi thông báo & mail cho admin: ${admin.email}`)
 
       await createNotification({
         user: admin._id,
@@ -86,13 +86,13 @@ export const ptSubmitReview = async (req, res) => {
 
       try {
         await sendNewPTRequestEmail(admin.email, req.user.name, req.user.email)
-        console.log(`✅ Đã gửi email tới ${admin.email}`)
+        console.info(`✅ Đã gửi email tới ${admin.email}`)
       } catch (mailError) {
         console.error(`❌ Lỗi khi gửi email tới ${admin.email}:`, mailError)
       }
     }
 
-    console.log('🎉 Đã hoàn tất gửi yêu cầu duyệt PT')
+    console.info('🎉 Đã hoàn tất gửi yêu cầu duyệt PT')
 
     //--- Return success
 
@@ -201,12 +201,11 @@ export const ptCancelMyPending = async (req, res) => {
 export const submitPTApprovalRequest = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id // ✅ fix để lấy đúng id từ cookie-based auth
-    console.log('👤 PT gửi yêu cầu:', req.user)
 
     // 🔍 Kiểm tra có hồ sơ PT chưa
     const ptProfile = await PTProfile.findOne({ user: userId })
     if (!ptProfile) {
-      console.log('❌ Không tìm thấy hồ sơ PT cho userId:', userId)
+      console.info('❌ Không tìm thấy hồ sơ PT cho userId:', userId)
       return res.status(404).json({ message: 'Không tìm thấy hồ sơ PT' })
     }
 
@@ -216,7 +215,7 @@ export const submitPTApprovalRequest = async (req, res) => {
       status: 'pending'
     })
     if (existing) {
-      console.log('⚠️ PT đã có yêu cầu pending:', existing._id)
+      console.info('⚠️ PT đã có yêu cầu pending:', existing._id)
       return res
         .status(400)
         .json({ message: 'Bạn đã có yêu cầu đang chờ duyệt' })
@@ -230,17 +229,17 @@ export const submitPTApprovalRequest = async (req, res) => {
       logs: [{ action: 'submit', by: userId }]
     })
 
-    console.log('✅ Đã tạo yêu cầu duyệt PT:', newRequest._id)
+    console.info('✅ Đã tạo yêu cầu duyệt PT:', newRequest._id)
 
     // 📬 Gửi notification + mail cho admin
     const admins = await User.find({ role: 'admin' })
-    console.log(
+    console.info(
       '🧩 Admins tìm thấy:',
       admins.map((a) => a.email)
     )
 
     for (const admin of admins) {
-      console.log(`📨 Gửi thông báo & mail cho admin: ${admin.email}`)
+      console.info(`📨 Gửi thông báo & mail cho admin: ${admin.email}`)
 
       await createNotification({
         user: admin._id,
@@ -252,13 +251,13 @@ export const submitPTApprovalRequest = async (req, res) => {
 
       try {
         await sendNewPTRequestEmail(admin.email, req.user.name, req.user.email)
-        console.log(`✅ Đã gửi email tới ${admin.email}`)
+        console.info(`✅ Đã gửi email tới ${admin.email}`)
       } catch (mailError) {
         console.error(`❌ Lỗi khi gửi email tới ${admin.email}:`, mailError)
       }
     }
 
-    console.log('🎉 Đã hoàn tất gửi yêu cầu duyệt PT')
+    console.info('🎉 Đã hoàn tất gửi yêu cầu duyệt PT')
 
     res.status(201).json({
       message: 'Đã gửi yêu cầu duyệt hồ sơ PT',

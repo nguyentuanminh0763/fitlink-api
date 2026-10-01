@@ -53,14 +53,14 @@ export const initChatSocket = (server) => {
   })
 
   io.on('connection', (socket) => {
-    console.log('⚡ Client connected:', socket.id)
+    console.info('⚡ Client connected:', socket.id)
 
     const authenticatedUserId = socket.data.userId
 
     // Tự động join room cá nhân của chính user đã xác thực
     if (authenticatedUserId) {
       socket.join(authenticatedUserId)
-      console.log(`👤 ${socket.id} joined user room ${authenticatedUserId} (authenticated)`)
+      console.info(`👤 ${socket.id} joined user room ${authenticatedUserId} (authenticated)`)
     }
 
     // Fallback registerUser: chỉ cho phép join room nếu đúng là ID của chính mình
@@ -79,7 +79,7 @@ export const initChatSocket = (server) => {
       const participants = roomId.split('-')
       if (participants.includes(authenticatedUserId)) {
         socket.join(roomId)
-        console.log(`✅ ${socket.id} (${authenticatedUserId}) joined room ${roomId}`)
+        console.info(`✅ ${socket.id} (${authenticatedUserId}) joined room ${roomId}`)
       } else {
         console.warn(`⚠️ Blocked unauthorized joinRoom attempt: ${authenticatedUserId} tried to join ${roomId}`)
       }
@@ -88,7 +88,7 @@ export const initChatSocket = (server) => {
     socket.on('leaveRoom', (roomId) => {
       if (!roomId) return
       socket.leave(roomId)
-      console.log(`🚪 ${socket.id} left room ${roomId}`)
+      console.info(`🚪 ${socket.id} left room ${roomId}`)
     })
 
     // Gửi tin nhắn + tạo/emit notification
@@ -145,7 +145,7 @@ export const initChatSocket = (server) => {
           createdAt: noti.createdAt
         })
 
-        console.log('💬 Message sent + saved:', room)
+        console.info('💬 Message sent + saved:', room)
       } catch (err) {
         console.error('❌ Socket sendMessage error:', err)
       }
@@ -167,18 +167,18 @@ export const initChatSocket = (server) => {
     })
 
     socket.on('disconnect', () => {
-      console.log('❌ Client disconnected:', socket.id)
+      console.info('❌ Client disconnected:', socket.id)
     })
   })
 
   // ✅ Cho phép các controller khác gọi emit notification realtime
   global.sendNotificationToUser = (userId, payload) => {
     io.to(String(userId)).emit('notification', payload)
-    console.log(`📩 [Realtime] Sent notification to user ${userId}`)
+    console.info(`📩 [Realtime] Sent notification to user ${userId}`)
   }
   // Emit realtime khi buổi tập được cập nhật
   global.emitSessionUpdate = (studentId, payload) => {
     io.to(String(studentId)).emit('session_updated', payload)
-    console.log(`📩 [Realtime] Sent session update to student ${studentId}`)
+    console.info(`📩 [Realtime] Sent session update to student ${studentId}`)
   }
 }

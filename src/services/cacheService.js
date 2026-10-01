@@ -39,7 +39,7 @@ class CacheService {
         if (raw !== null) {
           const duration = Date.now() - start
           if (env.BUILD_MODE === 'dev') {
-            console.log(`⚡ [CACHE HIT - Redis] ${key} (${duration}ms)`)
+            console.info(`⚡ [CACHE HIT - Redis] ${key} (${duration}ms)`)
           }
           return JSON.parse(raw)
         }
@@ -49,7 +49,7 @@ class CacheService {
           if (!item.expiresAt || item.expiresAt > Date.now()) {
             const duration = Date.now() - start
             if (env.BUILD_MODE === 'dev') {
-              console.log(`⚡ [CACHE HIT - In-Memory RAM] ${key} (${duration}ms)`)
+              console.info(`⚡ [CACHE HIT - In-Memory RAM] ${key} (${duration}ms)`)
             }
             return item.value
           }
@@ -58,7 +58,7 @@ class CacheService {
         }
       }
       if (env.BUILD_MODE === 'dev') {
-        console.log(`🛒 [CACHE MISS] ${key}`)
+        console.info(`🛒 [CACHE MISS] ${key}`)
       }
       return null
     } catch (err) {
@@ -79,7 +79,7 @@ class CacheService {
       }
 
       if (env.BUILD_MODE === 'dev') {
-        console.log(`📦 [CACHE SET] ${key} (TTL: ${ttl}s)`)
+        console.info(`📦 [CACHE SET] ${key} (TTL: ${ttl}s)`)
       }
       return true
     } catch (err) {
@@ -96,7 +96,7 @@ class CacheService {
         this.memoryStore.delete(key)
       }
       if (env.BUILD_MODE === 'dev') {
-        console.log(`🗑️ [CACHE EVICT] ${key}`)
+        console.info(`🗑️ [CACHE EVICT] ${key}`)
       }
       return true
     } catch (err) {
@@ -112,7 +112,7 @@ class CacheService {
         if (keys && keys.length > 0) {
           await this.redisClient.del(...keys)
           if (env.BUILD_MODE === 'dev') {
-            console.log(`🗑️ [CACHE EVICT PATTERN - Redis] ${pattern} (${keys.length} keys)`)
+            console.info(`🗑️ [CACHE EVICT PATTERN - Redis] ${pattern} (${keys.length} keys)`)
           }
         }
       } else {
@@ -127,7 +127,7 @@ class CacheService {
           }
         }
         if (env.BUILD_MODE === 'dev') {
-          console.log(`🗑️ [CACHE EVICT PATTERN - In-Memory] ${pattern} (${count} keys)`)
+          console.info(`🗑️ [CACHE EVICT PATTERN - In-Memory] ${pattern} (${count} keys)`)
         }
       }
       return true

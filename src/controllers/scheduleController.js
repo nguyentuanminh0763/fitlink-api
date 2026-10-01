@@ -245,8 +245,6 @@ const previewSchedule = async (req, res) => {
 /** 🔹 GENERATE (lưu Slot vào DB) */
 const generateSchedule = async (req, res) => {
   try {
-    console.log(req.body)
-
     const { packageId, startDate, carryForward, spreadWeekly } = req.body
     if (!packageId)
       return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Missing packageId' })

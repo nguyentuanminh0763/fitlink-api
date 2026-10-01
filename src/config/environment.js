@@ -64,7 +64,7 @@ export const checkEnv = () => {
     .filter(([, keys]) => keys.some((key) => !process.env[key]))
     .map(([feature]) => feature)
 
-  console.log(`⚙️  [ENV] BUILD_MODE=${env.BUILD_MODE} · APP_PORT=${env.APP_PORT} · REDIS_MODE=${env.REDIS_MODE} · CLIENT_URL=${env.CLIENT_URL}`)
+  console.info(`⚙️  [ENV] BUILD_MODE=${env.BUILD_MODE} · APP_PORT=${env.APP_PORT} · REDIS_MODE=${env.REDIS_MODE} · CLIENT_URL=${env.CLIENT_URL}`)
   if (disabled.length) console.warn(`⚠️  [ENV] Chưa cấu hình, sẽ báo lỗi khi dùng: ${disabled.join(', ')}`)
   if (env.REDIS_MODE === 'cloud' && !env.REDIS_CLOUD_URI) console.warn('⚠️  [ENV] REDIS_MODE=cloud nhưng REDIS_CLOUD_URI trống → dùng cache in-memory')
   if (env.CLIENT_URL.startsWith('https://')) {
