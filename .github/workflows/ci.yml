@@ -1,4 +1,4 @@
-# CI của fitlink-api: test → build Docker image → đẩy lên ACR.
+# CI của fitlink-api: lint → test → build Docker image → đẩy lên ACR.
 # Deploy vẫn làm tay: Azure Portal → Container App → Create revision → chọn tag = mã commit.
 # Cần trong Settings → Secrets and variables → Actions:
 #   Variables: ACR_LOGIN_SERVER, ACR_USERNAME   ·   Secret: ACR_PASSWORD
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   ci:
-    name: Test, build & push image
+    name: Lint, test, build & push image
     runs-on: ubuntu-latest
 
     steps:
@@ -34,6 +34,10 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+
+      # `npm run lint` = eslint src --max-warnings 0: sạch 0 lỗi 0 cảnh báo, có lỗi → job đỏ
+      - name: Lint
+        run: npm run lint
 
       # transaction.test.js cần MongoDB replica set (rs0) nên chưa chạy trên CI
       - name: Run Unit Tests
