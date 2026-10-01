@@ -48,7 +48,6 @@ const loginWithGoogle = async (req, res) => {
       audience: env.GG_CLIENT_ID
     })
     const payload = ticket.getPayload()
-    console.log('payload: ', payload)
 
     // payload chứa: email, name, picture, sub (unique Google user id)
     const { email, name, picture, sub } = payload
