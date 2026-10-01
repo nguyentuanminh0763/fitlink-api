@@ -1,6 +1,6 @@
 // models/PayoutRequest.js
-import mongoose from 'mongoose';
-const { Schema, model } = mongoose;
+import mongoose from 'mongoose'
+const { Schema, model } = mongoose
 
 const payoutRequestSchema = new Schema({
   pt: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -29,6 +29,6 @@ const payoutRequestSchema = new Schema({
   // (tuỳ chọn) tham chiếu tới wallet txn khi completed
   walletTxn: { type: Schema.Types.ObjectId, ref: 'PTWalletTransaction', default: null }
 
-}, { timestamps: true });
+}, { timestamps: true })
 
-export default model('PayoutRequest', payoutRequestSchema);
+export default model('PayoutRequest', payoutRequestSchema)

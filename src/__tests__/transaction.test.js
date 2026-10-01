@@ -95,7 +95,7 @@ describe('ACID Transactions & Idempotency - creditPTWalletIdempotent', () => {
       await session.withTransaction(async () => {
         // Tạo ví
         await PTWallet.create([{ pt: ptId, available: 100000 }], { session })
-        
+
         // Giả lập lỗi runtime giữa chừng giao dịch
         throw new Error('Simulated Database/Network Crash')
       })

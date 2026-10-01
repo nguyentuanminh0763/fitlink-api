@@ -19,9 +19,9 @@ export const initChatSocket = (server) => {
     cors: {
       origin: (origin, callback) => {
         if (!origin || env.CORS_ORIGINS.includes(origin)) {
-          return callback(null, true);
+          return callback(null, true)
         }
-        return callback(new Error(`Socket CORS blocked: ${origin}`));
+        return callback(new Error(`Socket CORS blocked: ${origin}`))
       },
       credentials: true
     }

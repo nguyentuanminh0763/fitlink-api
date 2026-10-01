@@ -5,25 +5,25 @@ const { Schema, model } = mongoose
 
 const walletTxnSchema = new Schema(
   {
-    pt: { 
-      type: Schema.Types.ObjectId, 
-      ref: 'User', 
-      required: true, 
-      index: true 
+    pt: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
     },
 
     // Loại giao dịch
-    type: { 
-      type: String, 
-      enum: ['earning', 'withdraw', 'adjustment'], 
-      required: true 
+    type: {
+      type: String,
+      enum: ['earning', 'withdraw', 'adjustment'],
+      required: true
     },
 
     // Dòng tiền
-    direction: { 
-      type: String, 
-      enum: ['credit', 'debit'], 
-      required: true 
+    direction: {
+      type: String,
+      enum: ['credit', 'debit'],
+      required: true
     }, // credit: tiền vào, debit: tiền ra
 
     amount: { type: Number, required: true, min: 0 },
@@ -33,10 +33,10 @@ const walletTxnSchema = new Schema(
     refType: { type: String, trim: true },
 
     // pending: chờ hoàn tất (VD: học viên chưa xác nhận buổi)
-    status: { 
-      type: String, 
-      enum: ['pending', 'completed'], 
-      default: 'completed' 
+    status: {
+      type: String,
+      enum: ['pending', 'completed'],
+      default: 'completed'
     },
 
     // Số dư sau khi ghi nhận (để show lịch sử ví)
@@ -48,7 +48,7 @@ const walletTxnSchema = new Schema(
 // Index để truy vấn nhanh lịch sử
 walletTxnSchema.index({ pt: 1, createdAt: -1 })
 // models/PTWalletTransaction.js
-walletTxnSchema.index({ refId: 1, refType: 1 }, { unique: true, sparse: true });
+walletTxnSchema.index({ refId: 1, refType: 1 }, { unique: true, sparse: true })
 
 walletTxnSchema.index({ type: 1, status: 1 })
 

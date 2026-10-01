@@ -1,8 +1,8 @@
-import express from "express";
-import { getTransactions } from "../controllers/transactionController.js";
+import express from 'express'
+import { getTransactions } from '../controllers/transactionController.js'
 
-const router = express.Router();
+const router = express.Router()
 
-router.get("/", getTransactions);
+router.get('/', getTransactions)
 
-export default router;
+export default router

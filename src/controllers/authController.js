@@ -129,41 +129,41 @@ const identityConditions = ({ phone, email }) => (phone ? [{ phone }, { email }]
 
 export const registerByPhoneStart = async (req, res) => {
   try {
-    const { password, name, role } = req.body;
-    const email = String(req.body.email || '').trim().toLowerCase();
+    const { password, name, role } = req.body
+    const email = String(req.body.email || '').trim().toLowerCase()
     // SĐT không còn bắt buộc (đăng nhập bằng email). Trống thì bỏ hẳn field, không lưu '' (index phone_1 unique)
-    const phone = String(req.body.phone || '').trim() || undefined;
+    const phone = String(req.body.phone || '').trim() || undefined
 
     if (!password || !name || !email) {
-      return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Missing fields' });
+      return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Missing fields' })
     }
 
     // normalize + validate role
-    const normalizedRole = String(role || '').toLowerCase();
-    const allowedRoles = [Roles.STUDENT, Roles.PT].map(r => String(r).toLowerCase());
-    const finalRole = allowedRoles.includes(normalizedRole) ? normalizedRole : String(Roles.STUDENT).toLowerCase();
+    const normalizedRole = String(role || '').toLowerCase()
+    const allowedRoles = [Roles.STUDENT, Roles.PT].map(r => String(r).toLowerCase())
+    const finalRole = allowedRoles.includes(normalizedRole) ? normalizedRole : String(Roles.STUDENT).toLowerCase()
 
     // ❌ disallow reuse of phone/email (no upgrade Student -> PT)
-    const existed = await User.findOne({ $or: identityConditions({ phone, email }) });
+    const existed = await User.findOne({ $or: identityConditions({ phone, email }) })
     if (existed) {
-      return res.status(StatusCodes.CONFLICT).json({ message: 'Phone or email already exists' });
+      return res.status(StatusCodes.CONFLICT).json({ message: 'Phone or email already exists' })
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const token = crypto.randomBytes(32).toString('hex');
-    const expireAt = new Date(Date.now() + 3 * 60 * 1000);
+    const passwordHash = await bcrypt.hash(password, 10)
+    const token = crypto.randomBytes(32).toString('hex')
+    const expireAt = new Date(Date.now() + 3 * 60 * 1000)
 
-    await PendingRegistration.deleteMany({ $or: identityConditions({ phone, email }) });
+    await PendingRegistration.deleteMany({ $or: identityConditions({ phone, email }) })
     await PendingRegistration.create({
       token, phone, email, name, passwordHash, expireAt, role: finalRole
-    });
+    })
 
-    const verifyUrl = `${env.CLIENT_URL}/verify-email?token=${token}`;
+    const verifyUrl = `${env.CLIENT_URL}/verify-email?token=${token}`
 
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
       auth: { user: env.EMAIL_USER, pass: env.EMAIL_PASS }
-    });
+    })
 
     await transporter.sendMail({
       from: env.EMAIL_FROM || env.EMAIL_USER,
@@ -174,46 +174,46 @@ export const registerByPhoneStart = async (req, res) => {
         <p>You have 3 minutes to confirm your ${finalRole.toUpperCase()} registration.</p>
         <p><a href="${verifyUrl}">${verifyUrl}</a></p>
       `
-    });
+    })
 
-    return res.status(StatusCodes.CREATED).json({ message: 'Verification email sent' });
+    return res.status(StatusCodes.CREATED).json({ message: 'Verification email sent' })
   } catch (err) {
-    return res.status(500).json({ message: 'Server error', error: err.message });
+    return res.status(500).json({ message: 'Server error', error: err.message })
   }
-};
+}
 
 
 // B2: click link xác nhận → tạo User thật
 // controllers/authController.js
 export const registerByPhoneConfirm = async (req, res) => {
   try {
-    const { token } = req.query;
-    if (!token) return res.status(400).json({ message: 'Missing token' });
+    const { token } = req.query
+    if (!token) return res.status(400).json({ message: 'Missing token' })
 
     const pending = await PendingRegistration.findOneAndUpdate(
       { token, expireAt: { $gt: new Date() }, consumed: false },
       { $set: { consumed: true } },
       { new: true }
-    );
+    )
 
     if (!pending) {
-      const maybe = await PendingRegistration.findOne({ token });
-      if (!maybe) return res.status(400).json({ message: 'Invalid or expired token' });
-      const existedUser = await User.findOne({ $or: identityConditions(maybe) });
+      const maybe = await PendingRegistration.findOne({ token })
+      if (!maybe) return res.status(400).json({ message: 'Invalid or expired token' })
+      const existedUser = await User.findOne({ $or: identityConditions(maybe) })
       if (existedUser) {
-        return res.status(200).json({ message: 'Account already created. You can sign in.' });
+        return res.status(200).json({ message: 'Account already created. You can sign in.' })
       }
-      return res.status(400).json({ message: 'Invalid or expired token' });
+      return res.status(400).json({ message: 'Invalid or expired token' })
     }
 
-    const existed = await User.findOne({ $or: identityConditions(pending) });
+    const existed = await User.findOne({ $or: identityConditions(pending) })
     if (existed) {
-      await PendingRegistration.deleteOne({ _id: pending._id });
-      return res.status(200).json({ message: 'Account already created. You can sign in.' });
+      await PendingRegistration.deleteOne({ _id: pending._id })
+      return res.status(200).json({ message: 'Account already created. You can sign in.' })
     }
 
     // role from pending (default to student if somehow missing)
-    const roleFromPending = (pending.role || Roles.STUDENT).toString().toLowerCase();
+    const roleFromPending = (pending.role || Roles.STUDENT).toString().toLowerCase()
 
     const newUser = await User.create({
       phone: pending.phone,
@@ -222,20 +222,19 @@ export const registerByPhoneConfirm = async (req, res) => {
       password: pending.passwordHash,
       isActive: true,
       role: roleFromPending // 👈 create with selected role
-    });
+    })
 
     // If PT, bootstrap profile & wallet
     if (roleFromPending === String(Roles.PT).toLowerCase()) {
-      await createPTArtifacts(newUser);
+      await createPTArtifacts(newUser)
     }
 
-    await PendingRegistration.deleteOne({ _id: pending._id });
-    return res.status(200).json({ message: 'Account created', userId: newUser._id, role: roleFromPending });
+    await PendingRegistration.deleteOne({ _id: pending._id })
+    return res.status(200).json({ message: 'Account created', userId: newUser._id, role: roleFromPending })
   } catch (err) {
-    return res.status(500).json({ message: 'Server error', error: err.message });
+    return res.status(500).json({ message: 'Server error', error: err.message })
   }
-};
-
+}
 
 
 const login = async (req, res) => {

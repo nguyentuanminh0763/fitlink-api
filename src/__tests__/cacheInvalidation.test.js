@@ -33,7 +33,7 @@ const seed = async () => {
     cacheService.set(keyOf(`/api/pt/${PT_B}/packages`), 'B-packages', 600),
     // key danh sách
     cacheService.set(keyOf('/api/search/pts?page=1&limit=12'), 'search-p1', 300),
-    cacheService.set(keyOf('/api/pt/public/list'), 'public-list', 300),
+    cacheService.set(keyOf('/api/pt/public/list'), 'public-list', 300)
   ])
 }
 

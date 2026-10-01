@@ -46,7 +46,7 @@ const registerByPhone = async (req, res, next) => {
   })
 
   try {
-    await correctCondition.validateAsync(req.body, { abortEarly: false });
+    await correctCondition.validateAsync(req.body, { abortEarly: false })
     next()
   } catch (error) {
     res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
@@ -60,12 +60,12 @@ const login = async (req, res, next) => {
     phone: Joi.string()
       .trim()
       .custom((value, helpers) => {
-        const isPhone = /^0[0-9]{9}$/.test(value);
-        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        const isPhone = /^0[0-9]{9}$/.test(value)
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
         if (!isPhone && !isEmail) {
-          return helpers.message('Vui lòng nhập số điện thoại hợp lệ (10 số) hoặc email');
+          return helpers.message('Vui lòng nhập số điện thoại hợp lệ (10 số) hoặc email')
         }
-        return value;
+        return value
       })
       .required()
       .messages({
@@ -85,7 +85,7 @@ const login = async (req, res, next) => {
     console.log('VALIDATION')
     next()
   } catch (error) {
-    console.log(error);
+    console.log(error)
     res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
       errors: new Error(error).message
     })

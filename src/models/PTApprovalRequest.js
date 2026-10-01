@@ -22,9 +22,9 @@ const profileSnapshotSchema = new Schema(
     primaryGym: {
       name: String,
       address: String,
-      location: {                    // GeoJSON Point
+      location: { // GeoJSON Point
         type: { type: String, enum: ['Point'], default: 'Point' },
-        coordinates: [Number]        // [lng, lat]
+        coordinates: [Number] // [lng, lat]
       },
       // giữ luôn ảnh tại thời điểm submit
       photos: [String]
@@ -90,7 +90,7 @@ const ptApprovalRequestSchema = new Schema(
       issues: { type: [String], default: [] },
       rejectReason: { type: String, default: '' }, // lý do AI detect
       suggestedBio: { type: String, default: '' },
-      reviewedAt: { type: Date },  // thời điểm AI chạy
+      reviewedAt: { type: Date }, // thời điểm AI chạy
       version: { type: Number, default: 1 }, // phòng trường hợp sau này update model hoặc rule
       isReviewed: { type: Boolean, default: false } // PT đã được AI kiểm duyệt hay chưa
     }

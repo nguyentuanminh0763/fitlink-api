@@ -10,16 +10,16 @@ import { cacheService } from '~/services/cacheService'
 
 
 // Mon-first ordering: 1..6..0(CN)
-const MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
+const MON_FIRST = [1, 2, 3, 4, 5, 6, 0]
 
 // helper: normalize patterns [[...], ...] -> chuẩn 0..6 và sắp theo Mon-first
 function normalizePatterns(input) {
-  let patterns = input;
+  let patterns = input
   if (Array.isArray(patterns) && patterns.length && typeof patterns[0] === 'number') {
     // [1,3,5] -> [[1,3,5]]
-    patterns = [patterns];
+    patterns = [patterns]
   }
-  if (!Array.isArray(patterns)) return [];
+  if (!Array.isArray(patterns)) return []
 
   return patterns
     .map((p) => {
@@ -27,20 +27,20 @@ function normalizePatterns(input) {
         new Set((Array.isArray(p) ? p : [])
           .map(Number)
           .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))
-      );
+      )
       // sort Mon-first: 1..6..0
-      cleaned.sort((a, b) => MON_FIRST.indexOf(a) - MON_FIRST.indexOf(b));
-      return cleaned;
+      cleaned.sort((a, b) => MON_FIRST.indexOf(a) - MON_FIRST.indexOf(b))
+      return cleaned
     })
-    .filter((p) => p.length > 0);
+    .filter((p) => p.length > 0)
 }
 
 // Dọn cache của riêng PT sở hữu gói này. Cần tra slug vì route chi tiết PT nhận
 // cả ObjectId lẫn slug, nên cache tồn tại ở hai dạng key khác nhau.
 const invalidateCacheForPackage = async (pkg) => {
-  const profile = await PTProfile.findOne({ user: pkg.pt }).select('slug').lean();
-  await cacheService.invalidatePT(pkg.pt, profile?.slug);
-};
+  const profile = await PTProfile.findOne({ user: pkg.pt }).select('slug').lean()
+  await cacheService.invalidatePT(pkg.pt, profile?.slug)
+}
 
 // PT tạo gói mới
 const createPackage = async (req, res) => {
@@ -50,25 +50,25 @@ const createPackage = async (req, res) => {
       description,
       price,
       totalSessions,
-      sessionDurationMin,   // bắt buộc
+      sessionDurationMin, // bắt buộc
       durationDays,
       visibility,
       tags,
       supports,
       travelPricing,
       recurrence // { daysOfWeek: [[...], ...] } hoặc daysOfWeek: [1,3,5]
-    } = req.body;
+    } = req.body
 
     if (!name || !totalSessions || !sessionDurationMin || !durationDays) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
         message: 'Vui lòng nhập đầy đủ: tên gói, số buổi, thời lượng mỗi buổi (phút), thời hạn (ngày)'
-      });
+      })
     }
 
-    let daysPatterns = [];
+    let daysPatterns = []
     if (recurrence?.daysOfWeek) {
-      daysPatterns = normalizePatterns(recurrence.daysOfWeek);
+      daysPatterns = normalizePatterns(recurrence.daysOfWeek)
     }
 
     const payload = {
@@ -82,166 +82,166 @@ const createPackage = async (req, res) => {
       isActive: typeof req.body.isActive === 'boolean' ? req.body.isActive : true,
       visibility: visibility || 'private',
       tags: Array.isArray(tags) ? tags : []
-    };
+    }
 
     // optional
-    if (supports && typeof supports === 'object') payload.supports = supports;
-    if (travelPricing && typeof travelPricing === 'object') payload.travelPricing = travelPricing;
-    if (daysPatterns.length) payload.recurrence = { daysOfWeek: daysPatterns };
+    if (supports && typeof supports === 'object') payload.supports = supports
+    if (travelPricing && typeof travelPricing === 'object') payload.travelPricing = travelPricing
+    if (daysPatterns.length) payload.recurrence = { daysOfWeek: daysPatterns }
 
-    const pkg = await Package.create(payload);
+    const pkg = await Package.create(payload)
 
-    await invalidateCacheForPackage(pkg);
+    await invalidateCacheForPackage(pkg)
 
     return res.status(StatusCodes.CREATED).json({
       success: true,
       message: 'Tạo gói tập thành công',
       data: pkg
-    });
+    })
   } catch (error) {
     if (error?.code === 11000) {
       return res.status(StatusCodes.CONFLICT).json({
         success: false,
         message: 'Tên gói đã tồn tại trong tài khoản PT'
-      });
+      })
     }
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server',
       error: error.message
-    });
+    })
   }
-};
+}
 
 // PT xem danh sách gói của mình
 const getMyPackages = async (req, res) => {
   try {
-    const { isActive, page = '1', limit = '10' } = req.query;
-    const _page = Math.max(1, parseInt(page, 10) || 1);
-    const _limit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+    const { isActive, page = '1', limit = '10' } = req.query
+    const _page = Math.max(1, parseInt(page, 10) || 1)
+    const _limit = Math.min(100, Math.max(1, parseInt(limit, 10) || 10))
 
-    const filter = { pt: req.user?._id };
-    if (typeof isActive !== 'undefined') filter.isActive = isActive === 'true';
+    const filter = { pt: req.user?._id }
+    if (typeof isActive !== 'undefined') filter.isActive = isActive === 'true'
 
     const [items, total] = await Promise.all([
       Package.find(filter).sort({ createdAt: -1 }).limit(_limit).skip((_page - 1) * _limit),
       Package.countDocuments(filter)
-    ]);
+    ])
 
     return res.status(StatusCodes.OK).json({
       success: true,
       data: items,
       pagination: { total, page: _page, pages: Math.ceil(total / _limit) }
-    });
+    })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server',
       error: error.message
-    });
+    })
   }
-};
+}
 
 // Public: Student xem danh sách gói của 1 PT (hỗ trợ cả ObjectId lẫn slug)
 const getPackagesByPTPublic = async (req, res) => {
   try {
-    const { ptId } = req.params;
-    let targetUserId = null;
+    const { ptId } = req.params
+    let targetUserId = null
 
     if (mongoose.isValidObjectId(ptId)) {
-      targetUserId = ptId;
-      const profile = await PTProfile.findById(ptId).select('user').lean();
+      targetUserId = ptId
+      const profile = await PTProfile.findById(ptId).select('user').lean()
       if (profile && profile.user) {
-        targetUserId = profile.user;
+        targetUserId = profile.user
       }
     } else {
       // ptId là slug (ví dụ: 'tran-mai-anh')
-      let profile = await PTProfile.findOne({ slug: ptId }).select('user').lean();
+      let profile = await PTProfile.findOne({ slug: ptId }).select('user').lean()
       if (!profile) {
         const allProfiles = await PTProfile.find({})
           .populate('user', 'name')
           .select('user slug')
-          .lean();
+          .lean()
         profile = allProfiles.find(p => {
-          if (!p.user) return false;
-          const s = p.slug || slugify(p.user.name);
-          return s.toLowerCase() === String(ptId).toLowerCase();
-        });
+          if (!p.user) return false
+          const s = p.slug || slugify(p.user.name)
+          return s.toLowerCase() === String(ptId).toLowerCase()
+        })
       }
       if (profile && profile.user) {
-        targetUserId = profile.user._id || profile.user;
+        targetUserId = profile.user._id || profile.user
       }
     }
 
     if (!targetUserId) {
-      return res.status(StatusCodes.OK).json({ success: true, data: [] });
+      return res.status(StatusCodes.OK).json({ success: true, data: [] })
     }
 
-    const items = await Package.find({ pt: targetUserId, isActive: true }).sort({ createdAt: -1 });
-    return res.status(StatusCodes.OK).json({ success: true, data: items });
+    const items = await Package.find({ pt: targetUserId, isActive: true }).sort({ createdAt: -1 })
+    return res.status(StatusCodes.OK).json({ success: true, data: items })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server',
       error: error.message
-    });
+    })
   }
-};
+}
 
 // Xem chi tiết một gói
 const getPackageById = async (req, res) => {
   try {
     const pkg = await Package.findById(req.params.id)
       .populate('pt', 'name avatar')
-      .lean(); // dùng lean để thêm trường tùy chỉnh
+      .lean() // dùng lean để thêm trường tùy chỉnh
 
     if (!pkg) {
       return res.status(StatusCodes.NOT_FOUND).json({
         success: false,
-        message: 'Không tìm thấy gói tập',
-      });
+        message: 'Không tìm thấy gói tập'
+      })
     }
 
-    const isOwner = req.user && String(pkg.pt._id) === String(req.user._id);
-    const isPublic = pkg.visibility === 'public';
+    const isOwner = req.user && String(pkg.pt._id) === String(req.user._id)
+    const isPublic = pkg.visibility === 'public'
     if (!isOwner && !isPublic) {
       return res.status(StatusCodes.FORBIDDEN).json({
         success: false,
-        message: 'Bạn không có quyền xem gói này',
-      });
+        message: 'Bạn không có quyền xem gói này'
+      })
     }
 
     // 🔍 Truy vấn ngược tất cả materials có sharedWithPackages chứa id này
     const materials = await PTMaterial.find({
-      sharedWithPackages: pkg._id,
+      sharedWithPackages: pkg._id
     })
       .select('title name type url updatedAt createdAt')
-      .lean();
+      .lean()
 
     // 🔗 Gắn thêm vào pkg
-    pkg.materials = materials || [];
+    pkg.materials = materials || []
 
-    return res.status(StatusCodes.OK).json({ success: true, data: pkg });
+    return res.status(StatusCodes.OK).json({ success: true, data: pkg })
   } catch (error) {
-    console.error('❌ getPackageById error:', error);
+    console.error('❌ getPackageById error:', error)
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server',
-      error: error.message,
-    });
+      error: error.message
+    })
   }
-};
+}
 
 
 // PT cập nhật gói của mình
 const updatePackage = async (req, res) => {
   try {
-    const pkg = await Package.findById(req.params.id);
+    const pkg = await Package.findById(req.params.id)
     if (!pkg) {
-      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Không tìm thấy gói tập' });
+      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Không tìm thấy gói tập' })
     }
     if (String(pkg.pt) !== String(req.user._id)) {
-      return res.status(StatusCodes.FORBIDDEN).json({ success: false, message: 'Bạn không có quyền sửa gói này' });
+      return res.status(StatusCodes.FORBIDDEN).json({ success: false, message: 'Bạn không có quyền sửa gói này' })
     }
 
     const allowedFields = [
@@ -256,102 +256,102 @@ const updatePackage = async (req, res) => {
       'tags',
       'supports',
       'travelPricing'
-    ];
+    ]
 
     for (const f of allowedFields) {
-      if (typeof req.body[f] !== 'undefined') pkg[f] = req.body[f];
+      if (typeof req.body[f] !== 'undefined') pkg[f] = req.body[f]
     }
 
     // recurrence (patterns) nếu có gửi lên
     if (req.body?.recurrence?.daysOfWeek) {
-      const patterns = normalizePatterns(req.body.recurrence.daysOfWeek);
-      pkg.recurrence = patterns.length ? { daysOfWeek: patterns } : { daysOfWeek: [] };
+      const patterns = normalizePatterns(req.body.recurrence.daysOfWeek)
+      pkg.recurrence = patterns.length ? { daysOfWeek: patterns } : { daysOfWeek: [] }
     }
 
-    await pkg.save();
+    await pkg.save()
 
-    await invalidateCacheForPackage(pkg);
+    await invalidateCacheForPackage(pkg)
 
     return res.status(StatusCodes.OK).json({
       success: true,
       message: 'Cập nhật gói thành công',
       data: pkg
-    });
+    })
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(StatusCodes.CONFLICT).json({ success: false, message: 'Tên gói đã tồn tại trong tài khoản PT' });
+      return res.status(StatusCodes.CONFLICT).json({ success: false, message: 'Tên gói đã tồn tại trong tài khoản PT' })
     }
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server',
       error: error.message
-    });
+    })
   }
-};
+}
 
 // Ẩn gói
 const deletePackage = async (req, res) => {
   try {
-    const pkg = await Package.findById(req.params.id);
+    const pkg = await Package.findById(req.params.id)
     if (!pkg) {
-      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Không tìm thấy gói tập' });
+      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Không tìm thấy gói tập' })
     }
     if (String(pkg.pt) !== String(req.user._id)) {
-      return res.status(StatusCodes.FORBIDDEN).json({ success: false, message: 'Bạn không có quyền ẩn gói này' });
+      return res.status(StatusCodes.FORBIDDEN).json({ success: false, message: 'Bạn không có quyền ẩn gói này' })
     }
 
-    const activeCount = await StudentPackage.countDocuments({ package: pkg._id, status: 'active' });
+    const activeCount = await StudentPackage.countDocuments({ package: pkg._id, status: 'active' })
     if (activeCount > 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
         message: `Không thể ẩn gói này vì đang có ${activeCount} học viên sử dụng`
-      });
+      })
     }
 
-    pkg.isActive = false;
-    await pkg.save();
+    pkg.isActive = false
+    await pkg.save()
 
-    await invalidateCacheForPackage(pkg);
+    await invalidateCacheForPackage(pkg)
 
-    return res.status(StatusCodes.OK).json({ success: true, message: 'Đã ẩn gói tập thành công' });
+    return res.status(StatusCodes.OK).json({ success: true, message: 'Đã ẩn gói tập thành công' })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server',
       error: error.message
-    });
+    })
   }
-};
+}
 
 // Xoá hẳn gói
 const hardDeletePackage = async (req, res) => {
   try {
-    const pkg = await Package.findById(req.params.id);
+    const pkg = await Package.findById(req.params.id)
     if (!pkg) {
-      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Không tìm thấy gói tập' });
+      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: 'Không tìm thấy gói tập' })
     }
     if (String(pkg.pt) !== String(req.user._id)) {
-      return res.status(StatusCodes.FORBIDDEN).json({ success: false, message: 'Bạn không có quyền xoá gói này' });
+      return res.status(StatusCodes.FORBIDDEN).json({ success: false, message: 'Bạn không có quyền xoá gói này' })
     }
 
-    const usedCount = await StudentPackage.countDocuments({ package: pkg._id });
+    const usedCount = await StudentPackage.countDocuments({ package: pkg._id })
     if (usedCount > 0) {
-      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Không thể xoá gói đã có học viên sử dụng' });
+      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: 'Không thể xoá gói đã có học viên sử dụng' })
     }
 
-    await pkg.deleteOne();
+    await pkg.deleteOne()
 
-    await invalidateCacheForPackage(pkg);
+    await invalidateCacheForPackage(pkg)
 
-    return res.status(StatusCodes.OK).json({ success: true, message: 'Đã xoá gói tập vĩnh viễn' });
+    return res.status(StatusCodes.OK).json({ success: true, message: 'Đã xoá gói tập vĩnh viễn' })
   } catch (error) {
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Lỗi server',
       error: error.message
-    });
+    })
   }
-};
+}
 
 export const packageController = {
   createPackage,
@@ -361,4 +361,4 @@ export const packageController = {
   updatePackage,
   deletePackage,
   hardDeletePackage
-};
+}

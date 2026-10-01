@@ -17,17 +17,17 @@ export const getTrainingSessions = async (req, res) => {
     // ⏱️ Lọc theo loại thời gian
     let timeFilter = {}
     switch (type) {
-      case 'upcoming':
-        timeFilter = { startTime: { $gt: now } }
-        break
-      case 'ongoing':
-        timeFilter = { startTime: { $lte: now }, endTime: { $gte: now } }
-        break
-      case 'history':
-        timeFilter = { endTime: { $lt: now } }
-        break
-      default:
-        timeFilter = {}
+    case 'upcoming':
+      timeFilter = { startTime: { $gt: now } }
+      break
+    case 'ongoing':
+      timeFilter = { startTime: { $lte: now }, endTime: { $gte: now } }
+      break
+    case 'history':
+      timeFilter = { endTime: { $lt: now } }
+      break
+    default:
+      timeFilter = {}
     }
 
     const filter = { ...filterBase, ...timeFilter }

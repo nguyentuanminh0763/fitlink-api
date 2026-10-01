@@ -23,7 +23,7 @@ describe('errorHandlingMiddleware - dịch lỗi thư viện ra mã HTTP', () =>
   })
 
   it('JSON sai cú pháp → 400, không lộ câu của parser', () => {
-    const { status, body } = run(Object.assign(new SyntaxError("Expected property name or '}'"), { type: 'entity.parse.failed', statusCode: 400 }))
+    const { status, body } = run(Object.assign(new SyntaxError('Expected property name or \'}\''), { type: 'entity.parse.failed', statusCode: 400 }))
     expect(status).toBe(400)
     expect(body.message).not.toContain('Expected property')
   })
@@ -55,6 +55,6 @@ describe('errorHandlingMiddleware - dịch lỗi thư viện ra mã HTTP', () =>
   })
 
   it('lỗi không nhận ra (bug) → 500', () => {
-    expect(run(new TypeError("Cannot read properties of undefined")).status).toBe(500)
+    expect(run(new TypeError('Cannot read properties of undefined')).status).toBe(500)
   })
 })

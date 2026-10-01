@@ -29,7 +29,7 @@ const messageSchema = new mongoose.Schema({
     filename: String
   }],
 
-  readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  readBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
   read: {
     type: Boolean,

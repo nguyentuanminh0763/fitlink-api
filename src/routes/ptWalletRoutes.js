@@ -5,10 +5,10 @@ import { ptWalletController } from '~/controllers/ptWalletController'
 const router = express.Router()
 
 router.get(
-    '/wallet/my',
-    authMiddleware.authenTokenCookie,
-    authMiddleware.isPT,
-    ptWalletController.getMyWallet
+  '/wallet/my',
+  authMiddleware.authenTokenCookie,
+  authMiddleware.isPT,
+  ptWalletController.getMyWallet
 )
 
 export default router

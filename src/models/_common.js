@@ -15,9 +15,9 @@ export const GeoPolygonSchema = new Schema(
 // Địa chỉ chung
 export const AddressSchema = new Schema(
   {
-    name: { type: String, default: '' },     // tuỳ chọn: tên địa điểm
+    name: { type: String, default: '' }, // tuỳ chọn: tên địa điểm
     address: { type: String, default: '' },
-    location: { type: GeoPointSchema }       // bắt buộc khi query theo khoảng cách
+    location: { type: GeoPointSchema } // bắt buộc khi query theo khoảng cách
   },
   { _id: false }
 )

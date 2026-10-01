@@ -1,12 +1,12 @@
 import mongoose from 'mongoose'
 const { Schema, model } = mongoose
-import { AddressSchema } from "./_common.js";
+import { AddressSchema } from './_common.js'
 
 const bookingSchema = new Schema({
   // Chủ thể
-  student: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-  pt: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-  package: { type: Schema.Types.ObjectId, ref: "Package", required: true, index: true },
+  student: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  pt: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  package: { type: Schema.Types.ObjectId, ref: 'Package', required: true, index: true },
 
   // Lịch học cố định
   pattern: { type: [Number], default: [] },
@@ -14,7 +14,7 @@ const bookingSchema = new Schema({
   patternKey: { type: String, index: true },
   slotKey: { type: String, index: true },
   startDate: { type: Date },
-  mode: { type: String, enum: ["atPtGym", "atClient", "atOtherGym"] },
+  mode: { type: String, enum: ['atPtGym', 'atClient', 'atOtherGym'] },
 
   // Snapshot vị trí
   clientAddress: { type: AddressSchema, default: null },
@@ -25,7 +25,7 @@ const bookingSchema = new Schema({
   travelPolicy: {
     freeRadiusKm: { type: Number, default: 6, min: 0 },
     maxTravelKm: { type: Number, default: 20, min: 0 },
-    feePerKm: { type: Number, default: 10000, min: 0 },
+    feePerKm: { type: Number, default: 10000, min: 0 }
   },
   travelDistanceKm: { type: Number, default: 0, min: 0 }, //Khoảng cách thực tế client–gym (OSRM tính) 7.2
   travelFee: { type: Number, default: 0, min: 0 }, //Phí di chuyển tính từ khoảng cách thực tế 2000
@@ -36,60 +36,60 @@ const bookingSchema = new Schema({
   packageSnapshot: {
     name: String,
     price: { type: Number, default: 0, min: 0 },
-    currency: { type: String, default: "VND" },
+    currency: { type: String, default: 'VND' },
     totalSessions: Number,
-    sessionDurationMin: Number,
+    sessionDurationMin: Number
   },
 
   // Pricing tổng hợp (để in hóa đơn & không phải tính lại)
   pricing: {
-    base: { type: Number, default: 0, min: 0 },  // thường = packageSnapshot.price
-    travel: { type: Number, default: 0, min: 0 },  // = travelFee
+    base: { type: Number, default: 0, min: 0 }, // thường = packageSnapshot.price
+    travel: { type: Number, default: 0, min: 0 }, // = travelFee
     discount: { type: Number, default: 0, min: 0 },
     tax: { type: Number, default: 0, min: 0 },
     subtotal: { type: Number, default: 0, min: 0 },
-    total: { type: Number, default: 0, min: 0 },
+    total: { type: Number, default: 0, min: 0 }
   },
 
   // Trạng thái đặt chỗ
   status: {
     type: String,
-    enum: ["PENDING_PAYMENT", "PAID", "CANCELLED", "REFUNDED", "EXPIRED"],
-    default: "PENDING_PAYMENT",
-    index: true,
+    enum: ['PENDING_PAYMENT', 'PAID', 'CANCELLED', 'REFUNDED', 'EXPIRED'],
+    default: 'PENDING_PAYMENT',
+    index: true
   },
   expiresAt: { type: Date, index: { expireAfterSeconds: 0 } },
 
   // Liên kết thanh toán
-  transaction: { type: Schema.Types.ObjectId, ref: "Transaction" }, // optional: transaction thắng cuộc
+  transaction: { type: Schema.Types.ObjectId, ref: 'Transaction' }, // optional: transaction thắng cuộc
 
   // Kết quả tiền cuối cùng (có thể mirror pricing.total)
   amount: { type: Number, default: 0, min: 0 },
-  currency: { type: String, default: "VND" },
+  currency: { type: String, default: 'VND' },
 
-  notes: String,
-}, { timestamps: true });
+  notes: String
+}, { timestamps: true })
 
 // Chặn user tạo 2 booking pending
 bookingSchema.index(
   { student: 1, status: 1 },
-  { partialFilterExpression: { status: "PENDING_PAYMENT" } }
-);
+  { partialFilterExpression: { status: 'PENDING_PAYMENT' } }
+)
 
-bookingSchema.pre("save", function (next) {
+bookingSchema.pre('save', function (next) {
   if (Array.isArray(this.pattern) && this.pattern.length) {
-    this.patternKey = [...this.pattern].sort((a, b) => a - b).join("-");
+    this.patternKey = [...this.pattern].sort((a, b) => a - b).join('-')
   }
   if (this.slot?.start && this.slot?.end) {
-    this.slotKey = `${this.slot.start}-${this.slot.end}`;
+    this.slotKey = `${this.slot.start}-${this.slot.end}`
   }
 
   // đồng bộ amount = pricing.total nếu có
   if (this.pricing?.total != null && this.amount == null) {
-    this.amount = this.pricing.total;
-    this.currency = this.packageSnapshot?.currency || this.currency || "VND";
+    this.amount = this.pricing.total
+    this.currency = this.packageSnapshot?.currency || this.currency || 'VND'
   }
-  next();
-});
+  next()
+})
 
-export default model('Booking', bookingSchema);
+export default model('Booking', bookingSchema)

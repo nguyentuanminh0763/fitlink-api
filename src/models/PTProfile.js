@@ -32,7 +32,7 @@ const PTProfileSchema = new Schema(
     deliveryModes: {
       atPtGym: { type: Boolean, default: true }, // dạy tại gym của PT
       atClient: { type: Boolean, default: false }, // dạy tại nhà/gym của học viên
-      atOtherGym: { type: Boolean, default: false }  // dạy tại một gym khác (không phải primaryGym)
+      atOtherGym: { type: Boolean, default: false } // dạy tại một gym khác (không phải primaryGym)
     },
 
     // Travel policy chỉ dùng khi atClient/atOtherGym = true
@@ -50,8 +50,8 @@ const PTProfileSchema = new Schema(
       dayOfWeek: { type: Number, min: 0, max: 6, required: true },
       intervals: [{
         start: { type: String, required: true }, // "06:00"
-        end: { type: String, required: true }  // "11:00"
-      }] 
+        end: { type: String, required: true } // "11:00"
+      }]
     }],
     // Thời gian nghỉ mặc định giữa 2 buổi (phút)
     defaultBreakMin: { type: Number, default: 0, min: 0 },

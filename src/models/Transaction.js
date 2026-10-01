@@ -15,9 +15,9 @@ const transactionSchema = new Schema(
     method: { type: String, enum: ['payos'], default: 'payos' },
 
     // ✅ trạng thái giao dịch
-    status: { 
-      type: String, 
-      enum: ['initiated', 'pending_gateway', 'paid', 'failed', 'refunded', 'cancelled'], 
+    status: {
+      type: String,
+      enum: ['initiated', 'pending_gateway', 'paid', 'failed', 'refunded', 'cancelled'],
       default: 'initiated',
       index: true
     },
@@ -28,8 +28,8 @@ const transactionSchema = new Schema(
 
     // ✅ thông tin từ PayOS
     gatewayTxnId:     String,
-    payosOrderCode:   { type: Number },         // Mã đơn hàng từ PayOS
-    payosCheckoutUrl: { type: String },         // URL QR
+    payosOrderCode:   { type: Number }, // Mã đơn hàng từ PayOS
+    payosCheckoutUrl: { type: String }, // URL QR
     payosInvoiceId:   { type: String, index: { unique: true, sparse: true } }, // để check trùng webhook
 
     // ✅ log webhook

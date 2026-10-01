@@ -5,7 +5,7 @@ const { Schema, model } = mongoose
 const slotHoldSchema = new Schema(
   {
     booking: { type: Schema.Types.ObjectId, ref: 'Booking', index: true }, // booking đang giữ chỗ (PENDING_PAYMENT)
-    until:   { type: Date }                                                // thời điểm hết hạn giữ (10–15’)
+    until:   { type: Date } // thời điểm hết hạn giữ (10–15’)
   },
   { _id: false }
 )
@@ -23,9 +23,9 @@ const slotSchema = new Schema(
 
     // Phân loại slot
     kind:   { type: String, enum: ['recurring', 'single'], required: true }, // cứng / lẻ
-    status: { 
+    status: {
       type: String,
-      enum: ['OPEN', 'BLOCKED', 'BOOKED', 'RESERVED_FOR_PACKAGE', 'HELD'],   // HELD = giữ tạm khi thanh toán
+      enum: ['OPEN', 'BLOCKED', 'BOOKED', 'RESERVED_FOR_PACKAGE', 'HELD'], // HELD = giữ tạm khi thanh toán
       default: 'BLOCKED',
       index: true
     },

@@ -93,7 +93,7 @@ export function sanitizePTProfile(body = {}) {
 
   // workingHours
   if (Array.isArray(body.workingHours)) {
-    const hhmm = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    const hhmm = /^([01]\d|2[0-3]):([0-5]\d)$/
     payload.workingHours = body.workingHours
       .map(d => ({
         dayOfWeek: Number(d?.dayOfWeek),
@@ -106,7 +106,7 @@ export function sanitizePTProfile(body = {}) {
             .filter(i => hhmm.test(i.start) && hhmm.test(i.end) && i.start < i.end)
           : []
       }))
-      .filter(d => Number.isFinite(d.dayOfWeek) && d.dayOfWeek >= 0 && d.dayOfWeek <= 6 && d.intervals.length > 0);
+      .filter(d => Number.isFinite(d.dayOfWeek) && d.dayOfWeek >= 0 && d.dayOfWeek <= 6 && d.intervals.length > 0)
   }
 
 

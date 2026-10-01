@@ -17,18 +17,18 @@ export function calcBookingPricing({
   travelDistanceKm = 0,
   travelPolicy = { freeRadiusKm: 0, feePerKm: 0 }
 }) {
-  const { freeRadiusKm = 0, feePerKm = 0 } = travelPolicy;
+  const { freeRadiusKm = 0, feePerKm = 0 } = travelPolicy
 
-  let travel = 0;
-  if (mode === "atClient" || mode === "atOtherGym") {
+  let travel = 0
+  if (mode === 'atClient' || mode === 'atOtherGym') {
     if (travelDistanceKm > freeRadiusKm) {
-      const exceed = travelDistanceKm - freeRadiusKm;
-      travel = exceed * feePerKm;
+      const exceed = travelDistanceKm - freeRadiusKm
+      travel = exceed * feePerKm
     }
   }
 
-  const subtotal = base + tax + travel;   // tổng trước giảm giá
-  const total = subtotal - discount;      // tổng cuối sau giảm giá
+  const subtotal = base + tax + travel // tổng trước giảm giá
+  const total = subtotal - discount // tổng cuối sau giảm giá
 
   return {
     base,
@@ -37,5 +37,5 @@ export function calcBookingPricing({
     travel,
     subtotal,
     total
-  };
+  }
 }

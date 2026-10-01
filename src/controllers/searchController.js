@@ -1,7 +1,7 @@
-import PTProfile from "../models/PTProfile.js";
-import User from "../models/User.js";
-import Package from "../models/Package.js";
-import { slugify } from "../utils/formatters.js";
+import PTProfile from '../models/PTProfile.js'
+import User from '../models/User.js'
+import Package from '../models/Package.js'
+import { slugify } from '../utils/formatters.js'
 
 /* ----------------------------------------------------
    🔹 Search PTs by specialty, slot availability, duration, mode, and location
@@ -13,77 +13,77 @@ export const getPTsByAvailableSlot = async (req, res) => {
       specialty,
       packageTime,
       area,
-      coords,         // "lat,lon"
+      coords, // "lat,lon"
       modes,
       name,
       goals,
       mode,
-      sortBy = "best",
+      sortBy = 'best',
       page = 1,
-      limit = 12,
-    } = req.query;
+      limit = 12
+    } = req.query
 
-    const pipeline = [];
+    const pipeline = []
 
     // ✅ 1. Only verified PTs available for new clients
     pipeline.push({
-      $match: { verified: true, availableForNewClients: true },
-    });
+      $match: { verified: true, availableForNewClients: true }
+    })
 
     /* ----------------------------------------------------
        ✅ 3. LOCATION FILTER — prioritize GPS over city text
     ---------------------------------------------------- */
     if (coords) {
-      const [lat, lon] = coords.split(",").map(Number);
+      const [lat, lon] = coords.split(',').map(Number)
       if (!isNaN(lat) && !isNaN(lon)) {
         // Dùng geoNear nếu PT có primaryGym.location (GeoJSON)
         pipeline.unshift({
           $geoNear: {
-            near: { type: "Point", coordinates: [lon, lat] },
-            distanceField: "distanceKm",
+            near: { type: 'Point', coordinates: [lon, lat] },
+            distanceField: 'distanceKm',
             spherical: true,
             maxDistance: 5000, // 🔹 5 km radius
             distanceMultiplier: 0.001, // convert to km
-            key: "primaryGym.location",
-          },
-        });
+            key: 'primaryGym.location'
+          }
+        })
       }
-      
+
     } else if (area) {
       // 🔹 fallback: match theo city name trong address hoặc areaNote
-      const regex = new RegExp(area.trim(), "i");
+      const regex = new RegExp(area.trim(), 'i')
       pipeline.push({
         $match: {
           $or: [
             { gymLocation: regex },
             { areaNote: regex },
-            { "primaryGym.address": regex },
-          ],
-        },
-      });
+            { 'primaryGym.address': regex }
+          ]
+        }
+      })
     }
 
     /* ----------------------------------------------------
        ✅ 4. Filter by delivery modes (multi-select)
     ---------------------------------------------------- */
     if (modes && Array.isArray(modes) && modes.length > 0) {
-      const selectedModes = modes.map((m) => m.trim());
+      const selectedModes = modes.map((m) => m.trim())
       pipeline.push({
         $match: {
           $or: selectedModes.map((mode) => ({
-            [`deliveryModes.${mode}`]: true,
-          })),
-        },
-      });
+            [`deliveryModes.${mode}`]: true
+          }))
+        }
+      })
     }
 
     /* ----------------------------------------------------
        ✅ 5. Filter by single mode dropdown
     ---------------------------------------------------- */
-    if (mode && mode !== "all") {
+    if (mode && mode !== 'all') {
       pipeline.push({
-        $match: { [`deliveryModes.${mode}`]: true },
-      });
+        $match: { [`deliveryModes.${mode}`]: true }
+      })
     }
 
     /* ----------------------------------------------------
@@ -91,37 +91,37 @@ export const getPTsByAvailableSlot = async (req, res) => {
     ---------------------------------------------------- */
     if (specialty) {
       pipeline.push({
-        $match: { specialties: { $regex: new RegExp(specialty, "i") } },
-      });
+        $match: { specialties: { $regex: new RegExp(specialty, 'i') } }
+      })
     }
 
     /* ----------------------------------------------------
        ✅ 7. Filter by available slot
     ---------------------------------------------------- */
     if (availableAt) {
-      const time = new Date(availableAt);
+      const time = new Date(availableAt)
       pipeline.push({
         $lookup: {
-          from: "slots",
-          let: { ptId: "$user" },
+          from: 'slots',
+          let: { ptId: '$user' },
           pipeline: [
             {
               $match: {
                 $expr: {
                   $and: [
-                    { $eq: ["$pt", "$$ptId"] },
-                    { $eq: ["$status", "OPEN"] },
-                    { $lte: ["$startTime", time] },
-                    { $gt: ["$endTime", time] },
-                  ],
-                },
-              },
-            },
+                    { $eq: ['$pt', '$$ptId'] },
+                    { $eq: ['$status', 'OPEN'] },
+                    { $lte: ['$startTime', time] },
+                    { $gt: ['$endTime', time] }
+                  ]
+                }
+              }
+            }
           ],
-          as: "openSlotsAt",
-        },
-      });
-      pipeline.push({ $match: { "openSlotsAt.0": { $exists: true } } });
+          as: 'openSlotsAt'
+        }
+      })
+      pipeline.push({ $match: { 'openSlotsAt.0': { $exists: true } } })
     }
 
     /* ----------------------------------------------------
@@ -129,24 +129,24 @@ export const getPTsByAvailableSlot = async (req, res) => {
     ---------------------------------------------------- */
     pipeline.push({
       $lookup: {
-        from: "packages",
-        let: { ptId: "$user" },
+        from: 'packages',
+        let: { ptId: '$user' },
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$pt", "$$ptId"] },
+              $expr: { $eq: ['$pt', '$$ptId'] },
               isActive: true,
               ...(packageTime && {
                 durationDays:
-                  packageTime === "short"
+                  packageTime === 'short'
                     ? { $lt: 7 }
-                    : packageTime === "medium"
-                    ? { $gte: 7, $lte: 30 }
-                    : packageTime === "long"
-                    ? { $gt: 30 }
-                    : {},
-              }),
-            },
+                    : packageTime === 'medium'
+                      ? { $gte: 7, $lte: 30 }
+                      : packageTime === 'long'
+                        ? { $gt: 30 }
+                        : {}
+              })
+            }
           },
           { $sort: { price: 1 } },
           {
@@ -155,32 +155,32 @@ export const getPTsByAvailableSlot = async (req, res) => {
               price: 1,
               durationDays: 1,
               description: 1,
-              tags: 1,
-            },
-          },
+              tags: 1
+            }
+          }
         ],
-        as: "packages",
-      },
-    });
+        as: 'packages'
+      }
+    })
 
     /* ----------------------------------------------------
        ✅ 9. Match specialty or goals in package tags
     ---------------------------------------------------- */
     if (specialty || (goals && goals.length > 0)) {
-      const goalRegex = goals?.map((g) => new RegExp(g, "i")) || [];
-      const matchConditions = [];
+      const goalRegex = goals?.map((g) => new RegExp(g, 'i')) || []
+      const matchConditions = []
       if (specialty)
         matchConditions.push(
-          { specialties: { $regex: new RegExp(specialty, "i") } },
-          { "packages.tags": { $regex: new RegExp(specialty, "i") } }
-        );
+          { specialties: { $regex: new RegExp(specialty, 'i') } },
+          { 'packages.tags': { $regex: new RegExp(specialty, 'i') } }
+        )
       if (goalRegex.length > 0)
         matchConditions.push(
-          { "packages.tags": { $in: goalRegex } },
+          { 'packages.tags': { $in: goalRegex } },
           { specialties: { $in: goalRegex } }
-        );
+        )
 
-      pipeline.push({ $match: { $or: matchConditions } });
+      pipeline.push({ $match: { $or: matchConditions } })
     }
 
     /* ----------------------------------------------------
@@ -188,63 +188,63 @@ export const getPTsByAvailableSlot = async (req, res) => {
     ---------------------------------------------------- */
     pipeline.push({
       $addFields: {
-        featuredPackage: { $arrayElemAt: ["$packages", 0] },
-        lowestPricePerSession: { $min: "$packages.price" },
-      },
-    });
+        featuredPackage: { $arrayElemAt: ['$packages', 0] },
+        lowestPricePerSession: { $min: '$packages.price' }
+      }
+    })
 
     /* ----------------------------------------------------
        ✅ 11. Join user info
     ---------------------------------------------------- */
     pipeline.push({
       $lookup: {
-        from: "users",
-        localField: "user",
-        foreignField: "_id",
-        as: "userInfo",
-      },
-    });
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userInfo'
+      }
+    })
     pipeline.push({
       $addFields: {
-        userInfo: { $arrayElemAt: ["$userInfo", 0] },
-      },
-    });
+        userInfo: { $arrayElemAt: ['$userInfo', 0] }
+      }
+    })
     pipeline.push({
       $project: {
-        "userInfo.password": 0,
-        "userInfo.refreshToken": 0,
-      },
-    });
+        'userInfo.password': 0,
+        'userInfo.refreshToken': 0
+      }
+    })
 
     /* ----------------------------------------------------
        ✅ 12. Filter by PT name (AFTER lookup)
     ---------------------------------------------------- */
     if (name) {
       pipeline.push({
-        $match: { "userInfo.name": { $regex: new RegExp(name, "i") } },
-      });
+        $match: { 'userInfo.name': { $regex: new RegExp(name, 'i') } }
+      })
     }
 
     /* ----------------------------------------------------
        ✅ 13. Sorting logic
     ---------------------------------------------------- */
-    const sort = {};
+    const sort = {}
     switch (sortBy) {
-      case "price":
-        sort.lowestPricePerSession = 1;
-        break;
-      case "rating":
-        sort.ratingAvg = -1;
-        break;
-      case "distance":
-        sort.distanceKm = 1;
-        break;
-      default:
-        sort.ratingAvg = -1;
-        sort.lowestPricePerSession = 1;
-        break;
+    case 'price':
+      sort.lowestPricePerSession = 1
+      break
+    case 'rating':
+      sort.ratingAvg = -1
+      break
+    case 'distance':
+      sort.distanceKm = 1
+      break
+    default:
+      sort.ratingAvg = -1
+      sort.lowestPricePerSession = 1
+      break
     }
-    pipeline.push({ $sort: sort });
+    pipeline.push({ $sort: sort })
 
     /* ----------------------------------------------------
        ✅ 14. Pagination
@@ -252,93 +252,93 @@ export const getPTsByAvailableSlot = async (req, res) => {
     // $facet chạy hai nhánh trên cùng tập đã lọc: một nhánh cắt trang, một nhánh
     // đếm tổng. Đếm phải xảy ra TRƯỚC $limit, nếu không total chỉ bằng số phần tử
     // của trang hiện tại và FE sẽ tính ra đúng 1 trang, giấu mất phần còn lại.
-    const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, Number(limit) || 12));
+    const pageNum = Math.max(1, Number(page) || 1)
+    const limitNum = Math.min(100, Math.max(1, Number(limit) || 12))
 
     pipeline.push({
       $facet: {
         items: [{ $skip: (pageNum - 1) * limitNum }, { $limit: limitNum }],
-        meta: [{ $count: "total" }],
-      },
-    });
+        meta: [{ $count: 'total' }]
+      }
+    })
 
     /* ----------------------------------------------------
        ✅ 15. Execute
     ---------------------------------------------------- */
-    const [aggResult] = await PTProfile.aggregate(pipeline);
+    const [aggResult] = await PTProfile.aggregate(pipeline)
 
     const itemsWithSlug = (aggResult?.items || []).map(item => ({
       ...item,
       slug: item.slug || slugify(item.userInfo?.name)
-    }));
+    }))
 
     res.status(200).json({
       success: true,
-      message: "Search PTs successful",
+      message: 'Search PTs successful',
       page: pageNum,
       limit: limitNum,
       total: aggResult?.meta?.[0]?.total || 0,
-      items: itemsWithSlug,
-    });
+      items: itemsWithSlug
+    })
   } catch (error) {
-    console.error("Error searching PTs:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Error searching PTs:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
   }
-};
+}
 
 /* ----------------------------------------------------
    🔹 PT Detail (includes all active packages) - support id or slug
 ---------------------------------------------------- */
 export const getPTById = async (req, res) => {
   try {
-    const { id } = req.params;
-    let ptProfile = null;
+    const { id } = req.params
+    let ptProfile = null
 
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      ptProfile = await PTProfile.findById(id).lean();
+      ptProfile = await PTProfile.findById(id).lean()
       if (!ptProfile) {
-        ptProfile = await PTProfile.findOne({ user: id }).lean();
+        ptProfile = await PTProfile.findOne({ user: id }).lean()
       }
     }
 
     if (!ptProfile) {
-      ptProfile = await PTProfile.findOne({ slug: id }).lean();
+      ptProfile = await PTProfile.findOne({ slug: id }).lean()
     }
 
     if (!ptProfile) {
-      const allProfiles = await PTProfile.find({}).populate("user", "name").lean();
+      const allProfiles = await PTProfile.find({}).populate('user', 'name').lean()
       ptProfile = allProfiles.find(p => {
-        if (!p.user) return false;
-        return (p.slug || slugify(p.user.name)) === id.toLowerCase();
-      });
+        if (!p.user) return false
+        return (p.slug || slugify(p.user.name)) === id.toLowerCase()
+      })
     }
 
     if (!ptProfile)
-      return res.status(404).json({ success: false, message: "PT not found" });
+      return res.status(404).json({ success: false, message: 'PT not found' })
 
     const user = await User.findById(ptProfile.user)
-      .select("name avatar gender email phone")
-      .lean();
+      .select('name avatar gender email phone')
+      .lean()
 
     const packages = await Package.find({
       pt: ptProfile.user,
-      isActive: true,
+      isActive: true
     })
-      .select("name price durationDays description tags")
-      .lean();
+      .select('name price durationDays description tags')
+      .lean()
 
     res.status(200).json({
       success: true,
-      message: "PT detail retrieved successfully",
-      data: { 
-        ...ptProfile, 
+      message: 'PT detail retrieved successfully',
+      data: {
+        ...ptProfile,
         slug: ptProfile.slug || slugify(user?.name),
-        user, 
-        packages 
-      },
-    });
+        user,
+        packages
+      }
+    })
   } catch (error) {
-    console.error("Error fetching PT detail:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error('Error fetching PT detail:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
   }
-};
+}

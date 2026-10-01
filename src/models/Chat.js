@@ -6,16 +6,16 @@ const chatSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   }],
-  
+
   lastMessage: {
-    sender: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User' 
+    sender: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
     },
     text: String,
     timestamp: Date
   },
-  
+
   // Lưu số tin chưa đọc của từng người
   unreadCount: {
     type: Map,

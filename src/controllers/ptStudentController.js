@@ -32,9 +32,9 @@ const listMyStudents = async (req, res) => {
     // search q (tên/email) phía FE hoặc lọc nhẹ phía BE
     const data = q
       ? items.filter(sp =>
-          (sp.student?.name || '').toLowerCase().includes(q.toLowerCase()) ||
+        (sp.student?.name || '').toLowerCase().includes(q.toLowerCase()) ||
           (sp.student?.email || '').toLowerCase().includes(q.toLowerCase())
-        )
+      )
       : items
 
     return res.status(StatusCodes.OK).json({

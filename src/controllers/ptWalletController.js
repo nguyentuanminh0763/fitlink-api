@@ -12,5 +12,5 @@ const getMyWallet = async (req, res) => {
 
 
 export const ptWalletController = {
-    getMyWallet
+  getMyWallet
 }

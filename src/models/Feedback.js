@@ -10,7 +10,7 @@ const FeedbackSchema = new Schema(
 
     // ⭐ Điểm & nhận xét
     rating: { type: Number, min: 1, max: 5, required: true },
-    comment: { type: String, default: '' },
+    comment: { type: String, default: '' }
 
   },
   { timestamps: true }

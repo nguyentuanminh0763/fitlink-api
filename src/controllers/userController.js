@@ -236,7 +236,7 @@ export const userController = {
   getUserProfile,
   updateProfile,
   changePassword,
-  uploadAvatar,
+  uploadAvatar
 }
 
 

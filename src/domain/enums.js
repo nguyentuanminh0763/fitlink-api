@@ -12,9 +12,9 @@ export const Genders = Object.freeze({
 
 // Địa điểm buổi học
 export const TrainingLocationType = Object.freeze({
-  AT_PT_GYM: 'at_pt_gym',        // học tại phòng gym cố định của PT
-  AT_CLIENT: 'at_client',        // PT đến nhà khách (home gym)
-  AT_OTHER_GYM: 'at_other_gym'   // PT đến 1 phòng gym khác theo yêu cầu KH
+  AT_PT_GYM: 'at_pt_gym', // học tại phòng gym cố định của PT
+  AT_CLIENT: 'at_client', // PT đến nhà khách (home gym)
+  AT_OTHER_GYM: 'at_other_gym' // PT đến 1 phòng gym khác theo yêu cầu KH
 })
 
 // Trạng thái booking/session (tuỳ anh dùng tới đâu)
@@ -44,5 +44,5 @@ export const PackageTags = Object.freeze({
   NUTRITION: 'nutrition',
   COMPETITION: 'competition',
   OTHER: 'other'
-});
+})
 

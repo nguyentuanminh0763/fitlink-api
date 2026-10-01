@@ -5,19 +5,19 @@ const { Schema, model } = mongoose
 
 const ptWalletSchema = new Schema(
   {
-    pt: { 
-      type: Schema.Types.ObjectId, 
-      ref: 'User', 
-      unique: true, 
-      required: true, 
-      index: true 
+    pt: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      unique: true,
+      required: true,
+      index: true
     },
 
     // 💰 Tổng quan số dư
-    available: { type: Number, default: 0 },  // tiền có thể rút ngay
-    pending:   { type: Number, default: 0 },  // tiền chờ xác nhận buổi
+    available: { type: Number, default: 0 }, // tiền có thể rút ngay
+    pending:   { type: Number, default: 0 }, // tiền chờ xác nhận buổi
     totalEarned: { type: Number, default: 0 }, // tổng thu nhập từ trước đến nay
-    withdrawn: { type: Number, default: 0 }    // tổng tiền đã rút
+    withdrawn: { type: Number, default: 0 } // tổng tiền đã rút
 
   },
   { timestamps: true }
