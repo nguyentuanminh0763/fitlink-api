@@ -316,7 +316,6 @@ const forgotPassword = async (req, res) => {
     await user.save()
 
     const resetLink = `${env.CLIENT_URL}/reset-password/${token}`
-    console.log(`Reset link: ${resetLink}`)
 
     await sendResetPasswordEmail(user.email, user.name || 'bạn', resetLink)
 
