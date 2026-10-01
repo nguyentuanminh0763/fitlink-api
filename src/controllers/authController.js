@@ -252,6 +252,13 @@ const login = async (req, res) => {
     return res.status(StatusCodes.FORBIDDEN).json({ message: 'Tài khoản của bạn đã bị khóa' })
   }
 
+  // Tài khoản tạo bằng Google không có mật khẩu: bcrypt.compare(…, undefined) sẽ ném lỗi → 500
+  if (!currentUser.password) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: 'Tài khoản này đăng nhập bằng Google, vui lòng bấm nút Google'
+    })
+  }
+
   if (!(await bcrypt.compare(password, currentUser.password))) {
     return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Mật khẩu không chính xác' })
   }
