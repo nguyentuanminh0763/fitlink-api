@@ -108,7 +108,7 @@ const updateProfile = async (req, res) => {
     }
     refreshCookieIfNeeded(res, req, user)
     const userId = user._id
-    const { name, email, gender, address, dob, avatar } = req.body
+    const { name, gender, address, dob, avatar } = req.body
 
     // Handle avatar upload if file is provided
     let avatarUrl = avatar
@@ -135,7 +135,6 @@ const updateProfile = async (req, res) => {
     // Build update object with only provided fields
     const updateData = {}
     if (name !== undefined) updateData.name = name
-    if (email !== undefined) updateData.email = email
     if (gender !== undefined) updateData.gender = gender
     if (address !== undefined) updateData.address = address
     if (dob !== undefined) updateData.dob = dob

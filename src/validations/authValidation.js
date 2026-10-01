@@ -103,6 +103,7 @@ const updateProfile = async (req, res, next) => {
         'string.min': 'Tên phải có ít nhất 2 ký tự',
         'string.max': 'Tên không được vượt quá 30 ký tự'
       }),
+    // Email không đổi được: vẫn nhận để frontend cũ (luôn gửi email) không bị 422, controller bỏ qua
     email: Joi.string()
       .email()
       .optional()
