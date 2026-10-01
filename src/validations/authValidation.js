@@ -82,10 +82,9 @@ const login = async (req, res, next) => {
   }).unknown(true)
   try {
     await correctCondition.validateAsync(req.body, { abortEarly: false })
-    console.log('VALIDATION')
     next()
   } catch (error) {
-    console.log(error)
+    // Không log `error`: lỗi Joi mang theo `_original` = toàn bộ body, tức cả mật khẩu dạng chữ thường
     res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
       errors: new Error(error).message
     })
