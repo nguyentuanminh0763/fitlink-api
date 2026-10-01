@@ -5,7 +5,6 @@ import PTApprovalRequest from '../models/PTApprovalRequest.js'
 import { createNotification } from '../services/notificationService.js'
 import mongoose from 'mongoose'
 import {
-  sendNewPTRequestEmail,
   sendPTApprovedEmail,
   sendPTRejectedEmail
 } from '../utils/mailer.js'

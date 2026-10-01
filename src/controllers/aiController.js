@@ -8,7 +8,6 @@ import { chatWithAI, AI_UNAVAILABLE_REPLY } from '../services/aiService.js'
  */
 export const chatAI = async (req, res) => {
   try {
-    const user = req.user // được gắn từ authMiddleware.authenTokenCookie
     const { message, history } = req.body || {}
 
     if (!message || !message.trim()) {

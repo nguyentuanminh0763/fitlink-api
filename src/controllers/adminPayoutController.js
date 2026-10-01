@@ -3,7 +3,6 @@ import mongoose from 'mongoose'
 import PayoutRequest from '~/models/PayoutRequest.js'
 import PTWallet from '~/models/PTWallet.js'
 import PTWalletTransaction from '~/models/PTWalletTransaction.js'
-import User from '~/models/User.js'
 import { sendPTWithdrawCompletedEmail } from '~/utils/mailer.js'
 
 export async function completePayout(req, res) {

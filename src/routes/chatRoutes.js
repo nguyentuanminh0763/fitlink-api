@@ -1,7 +1,6 @@
 // routes/chatRoutes.js
 import express from 'express'
 import StudentPackage from '../models/StudentPackage.js'
-import User from '../models/User.js'
 
 const router = express.Router()
 

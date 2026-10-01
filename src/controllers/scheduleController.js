@@ -48,10 +48,12 @@ function copyTimeOfDay(fromDate, toDateDayOnly) {
 function nextDateWithDow0After(day, dow0) {
   // Trả về NGÀY (00:00 local) có dow0 kế tiếp sau `day`
   let d = startOfDayLocal(day)
-  while (true) {
+  // Tối đa 7 ngày là gặp đủ mọi thứ trong tuần; dow0 ngoài 0..6 thì báo lỗi thay vì lặp vô hạn
+  for (let i = 0; i < 7; i++) {
     d = addMinutes(d, 24 * 60)
     if (getDow0(d) === dow0) return d
   }
+  throw new Error(`dow0 phải trong 0..6, nhận ${dow0}`)
 }
 
 /**

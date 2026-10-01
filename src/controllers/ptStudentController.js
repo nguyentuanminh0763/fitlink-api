@@ -1,7 +1,6 @@
 // src/controllers/ptStudentController.js
 import { StatusCodes } from 'http-status-codes'
 import StudentPackage from '~/models/StudentPackage'
-import User from '~/models/User'
 import Session from '~/models/Session'
 
 /**

@@ -1,7 +1,6 @@
 // controllers/ptPayoutController.js
 import PayoutRequest from '~/models/PayoutRequest.js'
 import PTWallet from '~/models/PTWallet.js'
-import mongoose from 'mongoose'
 import User from '~/models/User.js'
 import { env } from '~/config/environment.js'
 import { sendPTWithdrawRequestEmail } from '~/utils/mailer.js'

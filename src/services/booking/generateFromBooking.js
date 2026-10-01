@@ -64,7 +64,6 @@ export async function createSlotsAndSessionsForBooking(bookingId, studentPackage
   const toCreate = items.filter(i => !existingKey.has(i.startTime.getTime()))
 
   // 5) Tạo slot còn thiếu (nếu có)
-  let createdSlots = []
   if (toCreate.length) {
     const docs = toCreate.map(it => ({
       pt: booking.pt,
@@ -80,7 +79,7 @@ export async function createSlotsAndSessionsForBooking(bookingId, studentPackage
     }))
 
     try {
-      createdSlots = await Slot.insertMany(docs, { ordered: false })
+      await Slot.insertMany(docs, { ordered: false })
     } catch (err) {
       // Nếu có trùng do race condition, bỏ qua lỗi, sẽ fetch lại ở bước dưới
       // console.warn('insertMany slots warning:', err?.code || err?.message);
