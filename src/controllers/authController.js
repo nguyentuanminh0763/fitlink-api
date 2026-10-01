@@ -123,11 +123,18 @@ const registerByPhone = async (req, res) => {
   }
 }
 
+// Điều kiện "đã tồn tại" theo email, thêm SĐT nếu có.
+// Không đưa { phone: undefined } vào $or: Mongo hiểu là phone null → khớp mọi user không có SĐT (tài khoản Google)
+const identityConditions = ({ phone, email }) => (phone ? [{ phone }, { email }] : [{ email }])
+
 export const registerByPhoneStart = async (req, res) => {
   try {
-    const { phone, password, name, email, role } = req.body;
+    const { password, name, role } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    // SĐT không còn bắt buộc (đăng nhập bằng email). Trống thì bỏ hẳn field, không lưu '' (index phone_1 unique)
+    const phone = String(req.body.phone || '').trim() || undefined;
 
-    if (!phone || !password || !name || !email) {
+    if (!password || !name || !email) {
       return res.status(StatusCodes.BAD_REQUEST).json({ message: 'Missing fields' });
     }
 
@@ -137,7 +144,7 @@ export const registerByPhoneStart = async (req, res) => {
     const finalRole = allowedRoles.includes(normalizedRole) ? normalizedRole : String(Roles.STUDENT).toLowerCase();
 
     // ❌ disallow reuse of phone/email (no upgrade Student -> PT)
-    const existed = await User.findOne({ $or: [{ phone }, { email }] });
+    const existed = await User.findOne({ $or: identityConditions({ phone, email }) });
     if (existed) {
       return res.status(StatusCodes.CONFLICT).json({ message: 'Phone or email already exists' });
     }
@@ -146,7 +153,7 @@ export const registerByPhoneStart = async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const expireAt = new Date(Date.now() + 3 * 60 * 1000);
 
-    await PendingRegistration.deleteMany({ $or: [{ phone }, { email }] });
+    await PendingRegistration.deleteMany({ $or: identityConditions({ phone, email }) });
     await PendingRegistration.create({
       token, phone, email, name, passwordHash, expireAt, role: finalRole
     });
@@ -191,18 +198,15 @@ export const registerByPhoneConfirm = async (req, res) => {
 
     if (!pending) {
       const maybe = await PendingRegistration.findOne({ token });
-      const existedUser = await User.findOne({
-        $or: [{ phone: maybe?.phone }, { email: maybe?.email }]
-      });
+      if (!maybe) return res.status(400).json({ message: 'Invalid or expired token' });
+      const existedUser = await User.findOne({ $or: identityConditions(maybe) });
       if (existedUser) {
         return res.status(200).json({ message: 'Account already created. You can sign in.' });
       }
       return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    const existed = await User.findOne({
-      $or: [{ phone: pending.phone }, { email: pending.email }]
-    });
+    const existed = await User.findOne({ $or: identityConditions(pending) });
     if (existed) {
       await PendingRegistration.deleteOne({ _id: pending._id });
       return res.status(200).json({ message: 'Account already created. You can sign in.' });

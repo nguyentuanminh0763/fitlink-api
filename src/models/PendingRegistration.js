@@ -4,7 +4,7 @@ import { Roles } from '~/domain/enums.js'
 
 const PendingRegistrationSchema = new mongoose.Schema({
   token: { type: String, required: true, unique: true, index: true },
-  phone: { type: String, required: true },
+  phone: { type: String }, // tuỳ chọn: đăng ký bằng email
   email: { type: String, required: true },
   name: { type: String, required: true },
   passwordHash: { type: String, required: true },
