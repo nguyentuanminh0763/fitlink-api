@@ -1,0 +1,3 @@
+# Commit chỉ đổi định dạng (eslint --fix) — git blame / GitHub bỏ qua
+# Dùng local: git config blame.ignoreRevsFile .git-blame-ignore-revs
+f05730060584d90e142697e9c9416d99cbfb00b0
