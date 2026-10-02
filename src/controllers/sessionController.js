@@ -134,13 +134,11 @@ export const getSessionsByPT = async (req, res) => {
       const start = new Date(s.startTime)
       const end = new Date(s.endTime)
 
-      // Adjust to Vietnam timezone (+7)
-      start.setHours(start.getHours() + 7)
-      end.setHours(end.getHours() + 7)
-
+      // Server chạy giờ VN (TZ=Asia/Ho_Chi_Minh trong Dockerfile) → getHours/getDate đã là giờ VN.
+      // Không dùng toISOString() để lấy ngày: nó luôn theo UTC, buổi trước 07:00 sáng sẽ ra ngày hôm trước.
       const pad = (n) => n.toString().padStart(2, '0')
       const hhmm = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
-      const date = start.toISOString().slice(0, 10)
+      const date = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`
 
       return {
         ...s.toObject(),

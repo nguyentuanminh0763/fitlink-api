@@ -27,6 +27,11 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
+# Giờ VN cho mọi phép tính ngày giờ của server (setHours/getHours/getDay trong lịch PT, booking...).
+# Container mặc định UTC → "07:00" của PT thành 07:00 UTC = 14:00 VN. Máy dev (Windows GMT+7) vốn đúng.
+# Node trên Alpine đọc TZ qua ICU sẵn có, không cần cài tzdata.
+ENV TZ=Asia/Ho_Chi_Minh
+
 # Install dumb-init for graceful shutdown & proper PID 1 signal forwarding
 RUN apk add --no-cache dumb-init
 
